@@ -23,10 +23,19 @@ public:
 	UCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	USkeletalMeshComponent* Arms;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	USkeletalMeshComponent* WeaponTP;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	USkeletalMeshComponent* WeaponFP;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float H_Sensitivity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float V_Sensitivity;
 
 
 protected:
@@ -44,6 +53,14 @@ public:
 
 private:
 
+	UPROPERTY()
+	FTimerHandle FireHandle;
+
+	UPROPERTY()
+	FHitResult FireHitResult;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 	UFUNCTION()
 	void MoveFront(float Value);
 
@@ -57,7 +74,7 @@ private:
 	void LookRight(float Value);
 
 	UPROPERTY(ReplicatedUsing = OnRep_Weapons)
-	TArray<UWeaponMaster> Weapons;
+	TArray<UWeaponMaster*> Weapons;
 
 	UFUNCTION()
 	void OnRep_Weapons();
@@ -83,11 +100,23 @@ private:
 	UFUNCTION(Server, Reliable)
 	void SR_SetWeaponAtINDEX(UWeaponMaster* Weapon, int32 INDEX);
 
-	UFUNCTION(NetMutlicast, Reliable)
+	UFUNCTION(NetMulticast, Reliable)
 	void MC_SwitchWeapons(int32 INDEX);
 	
 	UFUNCTION(Server, Reliable)
 	void SR_SwitchWeapons(int32 INDEX);
+
+	UFUNCTION()
+	void Interacting();
+
+	UFUNCTION()
+	void SwitchPrimary();
+
+	UFUNCTION()
+	void SwitchSecondary();
+
+	UFUNCTION()
+	void SwitchUnarmed();
 
 public:
 
@@ -110,7 +139,7 @@ public:
 	void SwitchWeapons(int32 INDEX);
 
 	UFUNCTION()
-	void SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn);
+	bool SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn);
 	
 
 	

@@ -12,7 +12,7 @@ void AWeaponPickup::Interact_Implementation(ABaseCharacter *Interactor)
 
 void AWeaponPickup::SR_Interact_Implementation(ABaseCharacter *Interactor, TSubclassOf<UWeaponMaster> Weapon)
 {
-    if(Interator->SpawnWeapon(Weapon)){
+    if(Interactor->SpawnWeapon(Weapon)){
         Destroy();
     }
 }

@@ -16,6 +16,11 @@ UWeaponMaster::UWeaponMaster()
 	// ...
 
 	SetIsReplicatedByDefault(true);
+
+	WeaponMesh = nullptr;
+	PickupClass = nullptr;
+	SocketToAttach = TEXT("");
+	
 }
 
 

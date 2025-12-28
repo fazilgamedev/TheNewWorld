@@ -1,11 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Characters/BaseCharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "WeaponSystem/WeaponMaster.h"
+#include "WeaponSystem/WeaponPickup.h"
+#include "PickupSystem/PickupMaster.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Camera/CameraComponent.h"
+#include "PickupSystem/Interfaces/InteractInterface.h"
 
 // Sets default values
 ABaseCharacter::ABaseCharacter()
@@ -13,6 +15,29 @@ ABaseCharacter::ABaseCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Arms = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Arms"));
+	WeaponFP = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponFP"));
+	WeaponTP = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponTP"));
+
+	Camera->SetupAttachment(GetRootComponent());
+	Camera->SetFieldOfView(90.f);
+	Camera->bUsePawnControlRotation = true;
+
+	Arms->SetupAttachment(Camera);
+	Arms->SetOnlyOwnerSee(true);
+
+	WeaponFP->SetupAttachment(Arms);
+	WeaponFP->SetOnlyOwnerSee(true);
+
+	WeaponTP->SetupAttachment(GetMesh());
+	WeaponTP->SetOwnerNoSee(true);
+
+	GetMesh()->SetOwnerNoSee(true);
+
+	CurrentWeaponINDEX = -1;
+
+	Weapons.Init(nullptr, 2);
 }
 
 // Called when the game starts or when spawned
@@ -34,27 +59,44 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	PlayerInputComponent->BindAxis("MoveFront", this, &ABaseCharacter::MoveFront);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ABaseCharacter::MoveRight);
+	PlayerInputComponent->BindAxis("LookUp", this, &ABaseCharacter::LookUp);
+	PlayerInputComponent->BindAxis("LookRight", this, &ABaseCharacter::LookRight);
+
+	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &ABaseCharacter::Interacting);
+	PlayerInputComponent->BindAction("Primary", IE_Pressed, this, &ABaseCharacter::SwitchPrimary);
+	PlayerInputComponent->BindAction("Secondary", IE_Pressed, this, &ABaseCharacter::SwitchSecondary);
+	PlayerInputComponent->BindAction("Unarmed", IE_Pressed, this, &ABaseCharacter::SwitchUnarmed);
+
 }
 
 void ABaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ABaseCharacter, Weapons);
+	DOREPLIFETIME(ABaseCharacter, CurrentWeaponINDEX);
 }
 
 void ABaseCharacter::MoveFront(float Value)
 {
+	AddMovementInput(GetActorForwardVector(), Value);
 }
 
 void ABaseCharacter::MoveRight(float Value)
 {
+	AddMovementInput(GetActorRightVector(), Value);
 }
 
 void ABaseCharacter::LookUp(float Value)
 {
+	AddControllerPitchInput(Value * V_Sensitivity);
 }
 
 void ABaseCharacter::LookRight(float Value)
 {
+	AddControllerYawInput(Value * H_Sensitivity);
 }
 
 void ABaseCharacter::OnRep_Weapons()
@@ -63,64 +105,142 @@ void ABaseCharacter::OnRep_Weapons()
 
 void ABaseCharacter::OnRep_CurrentWeaponINDEX()
 {
+	if(CurrentWeaponINDEX == -1) SetCurrentWeaponMesh(nullptr, TEXT(""));
+	else{
+		if(GetCurrentWeapon()) SetCurrentWeaponMesh(GetCurrentWeapon()->WeaponMesh, GetCurrentWeapon()->SocketToAttach);
+		else SetCurrentWeaponMesh(nullptr, TEXT(""));
+	}
 }
 
 void ABaseCharacter::SR_Interact_Implementation(AActor *Target, ABaseCharacter *Interactor)
 {
+	IInteractInterface::Execute_Interact(Target, Interactor);
 }
 
 void ABaseCharacter::MC_SetCurrentWeaponMesh_Implementation(USkeletalMesh *NewMesh, FName SocketName)
 {
+	if(!(WeaponTP && WeaponFP)) return;
+	if(NewMesh){
+		WeaponTP->SetSkeletalMesh(NewMesh, true);
+		WeaponTP->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
+		WeaponFP->SetSkeletalMesh(NewMesh, true);
+		WeaponFP->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);		
+	}else{
+		WeaponTP->SetSkeletalMesh(nullptr);
+		WeaponFP->SetSkeletalMesh(nullptr);
+	}
 }
 
 void ABaseCharacter::SR_SetCurrentWeaponMesh_Implementation(USkeletalMesh *NewMesh, FName SocketName)
 {
+	MC_SetCurrentWeaponMesh(NewMesh, SocketName);
 }
 
 void ABaseCharacter::MC_SetWeaponAtINDEX_Implementation(UWeaponMaster *Weapon, int32 INDEX)
 {
+	if(Weapons.IsValidIndex(INDEX)) Weapons[INDEX] = Weapon;
 }
 
 void ABaseCharacter::SR_SetWeaponAtINDEX_Implementation(UWeaponMaster *Weapon, int32 INDEX)
 {
+	MC_SetWeaponAtINDEX(Weapon, INDEX);
 }
 
 void ABaseCharacter::MC_SwitchWeapons_Implementation(int32 INDEX)
 {
+	if(CurrentWeaponINDEX == INDEX) return;
+	CurrentWeaponINDEX = INDEX;
+	if(HasAuthority()) OnRep_CurrentWeaponINDEX();
 }
 
 void ABaseCharacter::SR_SwitchWeapons_Implementation(int32 INDEX)
 {
+	MC_SwitchWeapons(INDEX);
+}
+
+void ABaseCharacter::Interacting()
+{
+	TArray<AActor*> Actors;
+	GetOverlappingActors(Actors, APickupMaster::StaticClass());
+	if(Actors.Num() > 0 && Actors[0] && Actors[0]->GetClass()->ImplementsInterface(UInteractInterface::StaticClass())){
+		if(HasAuthority()) 	IInteractInterface::Execute_Interact(Actors[0], this);
+		else SR_Interact(Actors[0], this);
+	}
+}
+
+void ABaseCharacter::SwitchPrimary()
+{
+	SwitchWeapons(0);
+}
+
+void ABaseCharacter::SwitchSecondary()
+{
+	SwitchWeapons(1);
+}
+
+void ABaseCharacter::SwitchUnarmed()
+{
+	SwitchWeapons(-1);
 }
 
 UWeaponMaster *ABaseCharacter::GetWeaponAtINDEX(int32 INDEX)
 {
-    return nullptr;
+    return Weapons.IsValidIndex(INDEX) ? Weapons[INDEX] : nullptr;
 }
 
 bool ABaseCharacter::SetWeaponAtINDEX(UWeaponMaster *Weapon, int32 INDEX)
 {
-    return false;
+	if(Weapons.IsValidIndex(INDEX)){
+		if(HasAuthority()) MC_SetWeaponAtINDEX(Weapon, INDEX);
+		else SR_SetWeaponAtINDEX(Weapon, INDEX);
+		return true;
+	}
+	return false;
 }
 
 UWeaponMaster *ABaseCharacter::GetCurrentWeapon()
 {
-    return nullptr;
+    return Weapons.IsValidIndex(CurrentWeaponINDEX) ? GetWeaponAtINDEX(CurrentWeaponINDEX) : nullptr;
 }
 
 bool ABaseCharacter::SetCurrentWeapon(UWeaponMaster *Weapon)
 {
-    return false;
+	if(!Weapon){
+		if(SetWeaponAtINDEX(nullptr, CurrentWeaponINDEX)){
+			SetCurrentWeaponMesh(nullptr, TEXT(""));
+			return true;
+		}
+		return false;
+	}else{
+		if(SetWeaponAtINDEX(Weapon, CurrentWeaponINDEX)){ 
+			SetCurrentWeaponMesh(Weapon->WeaponMesh, Weapon->SocketToAttach);
+			return true;
+		}
+		return false;
+	}
 }
 
 void ABaseCharacter::SetCurrentWeaponMesh(USkeletalMesh *NewMesh, FName SocketName)
 {
+	if(HasAuthority()) MC_SetCurrentWeaponMesh(NewMesh, SocketName);
+	else SR_SetCurrentWeaponMesh(NewMesh, SocketName);
 }
 
 void ABaseCharacter::SwitchWeapons(int32 INDEX)
 {
+	if(HasAuthority()) MC_SwitchWeapons(INDEX);
+	else SR_SwitchWeapons(INDEX);
 }
 
-void ABaseCharacter::SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn)
+bool ABaseCharacter::SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn)
 {
+	if(!Weapons.IsValidIndex(CurrentWeaponINDEX)) SwitchWeapons(0);
+	UWeaponMaster* OldWeapon = GetCurrentWeapon();
+	if(OldWeapon){
+		GetWorld()->SpawnActor<AWeaponPickup>(OldWeapon->PickupClass, GetActorLocation() + GetActorForwardVector() * 100.f, FRotator(30.f, 0.f, 0.f));
+		OldWeapon->DestroyComponent();
+		SetCurrentWeapon(nullptr);
+	}
+	UWeaponMaster* NewComp = Cast<UWeaponMaster>(AddComponentByClass(WeaponToSpawn, true, FTransform::Identity, false));
+	return SetCurrentWeapon(NewComp);
 }
