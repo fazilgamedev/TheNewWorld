@@ -6,6 +6,10 @@
 #include "GameFramework/Character.h"
 #include "BaseCharacter.generated.h"
 
+class UCameraComponent;
+class USkeletalMeshComponent;
+class UWeaponMaster;
+
 UCLASS()
 class THENEWWORLD_API ABaseCharacter : public ACharacter
 {
@@ -14,6 +18,16 @@ class THENEWWORLD_API ABaseCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	ABaseCharacter();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UCameraComponent* Camera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	USkeletalMeshComponent* WeaponTP;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	USkeletalMeshComponent* WeaponFP;
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -26,6 +40,78 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+private:
+
+	UFUNCTION()
+	void MoveFront(float Value);
+
+	UFUNCTION()
+	void MoveRight(float Value);
+
+	UFUNCTION()
+	void LookUp(float Value);
+
+	UFUNCTION()
+	void LookRight(float Value);
+
+	UPROPERTY(ReplicatedUsing = OnRep_Weapons)
+	TArray<UWeaponMaster> Weapons;
+
+	UFUNCTION()
+	void OnRep_Weapons();
+
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeaponINDEX)
+	int32 CurrentWeaponINDEX;
+
+	UFUNCTION()
+	void OnRep_CurrentWeaponINDEX();
+
+	UFUNCTION(Server, Reliable)
+	void SR_Interact(AActor* Target, ABaseCharacter* Interactor);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MC_SetCurrentWeaponMesh(USkeletalMesh* NewMesh, FName SocketName);
+
+	UFUNCTION(Server, Reliable)
+	void SR_SetCurrentWeaponMesh(USkeletalMesh* NewMesh, FName SocketName);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MC_SetWeaponAtINDEX(UWeaponMaster* Weapon, int32 INDEX);
+
+	UFUNCTION(Server, Reliable)
+	void SR_SetWeaponAtINDEX(UWeaponMaster* Weapon, int32 INDEX);
+
+	UFUNCTION(NetMutlicast, Reliable)
+	void MC_SwitchWeapons(int32 INDEX);
 	
+	UFUNCTION(Server, Reliable)
+	void SR_SwitchWeapons(int32 INDEX);
+
+public:
+
+	UFUNCTION()
+	UWeaponMaster* GetWeaponAtINDEX(int32 INDEX);
+
+	UFUNCTION()
+	bool SetWeaponAtINDEX(UWeaponMaster* Weapon, int32 INDEX);
+
+	UFUNCTION()
+	UWeaponMaster* GetCurrentWeapon();
+
+	UFUNCTION()
+	bool SetCurrentWeapon(UWeaponMaster* Weapon);
+
+	UFUNCTION()
+	void SetCurrentWeaponMesh(USkeletalMesh* NewMesh, FName SocketName);
+
+	UFUNCTION()
+	void SwitchWeapons(int32 INDEX);
+
+	UFUNCTION()
+	void SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn);
+	
+
 	
 };

@@ -2,6 +2,8 @@
 
 
 #include "WeaponSystem/WeaponMaster.h"
+#include "WeaponSystem/WeaponPickup.h"
+#include "Components/SkeletalMeshComponent.h"
 
 
 // Sets default values for this component's properties
@@ -12,6 +14,8 @@ UWeaponMaster::UWeaponMaster()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	// ...
+
+	SetIsReplicatedByDefault(true);
 }
 
 

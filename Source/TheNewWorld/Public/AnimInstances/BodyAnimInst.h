@@ -6,6 +6,8 @@
 #include "Animation/AnimInstance.h"
 #include "BodyAnimInst.generated.h"
 
+class ABaseCharacter;
+
 /**
  * 
  */
@@ -14,6 +16,32 @@ class THENEWWORLD_API UBodyAnimInst : public UAnimInstance
 {
 	GENERATED_BODY()
 	
+public:
+
+	UBodyAnimInst();
+
+protected:
+
+	virtual void NativeInitializeAnimation() override;
+
+	virtual void NativeUpdateAnimation(float DeltaTime) override;
+
+private:
+
+	UPROPERTY()
+	ABaseCharacter* CharacterREF;
+
+//////////////////////////////////////////////////////////////////
+
+
+
+public:
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float Speed;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float Direction;
 	
 	
 	

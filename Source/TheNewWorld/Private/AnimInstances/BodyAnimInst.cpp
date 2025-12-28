@@ -2,7 +2,27 @@
 
 
 #include "AnimInstances/BodyAnimInst.h"
+#include "Characters/BaseCharacter.h"
 
+UBodyAnimInst::UBodyAnimInst()
+{
+}
 
+void UBodyAnimInst::NativeInitializeAnimation()
+{
+    Super::NativeInitializeAnimation();
 
+    CharacterREF = Cast<ABaseCharacter>(TryGetPawnOwner());
+    if(!CharacterREF) return;
+}
 
+void UBodyAnimInst::NativeUpdateAnimation(float DeltaTime)
+{
+    Super::NativeUpdateAnimation(DeltaTime);
+
+    if(!CharacterREF) CharacterREF = Cast<ABaseCharacter>(TryGetPawnOwner());
+
+    Speed = CharacterREF->GetVelocity().Size2D();
+
+    Direction = CalculateDirection(CharacterREF->GetVelocity().Size2D(), CharacterREF->GetActorRotation());
+}

@@ -6,6 +6,9 @@
 #include "Components/ActorComponent.h"
 #include "WeaponMaster.generated.h"
 
+class USkeletalMesh;
+class AWeaponPickup;
+
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable )
 class THENEWWORLD_API UWeaponMaster : public UActorComponent
@@ -15,6 +18,15 @@ class THENEWWORLD_API UWeaponMaster : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	UWeaponMaster();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USkeletalMesh* WeaponMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AWeaponPickup> PickupClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName SocketToAttach;
 
 protected:
 	// Called when the game starts

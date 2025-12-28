@@ -6,6 +6,8 @@
 #include "Animation/AnimInstance.h"
 #include "ArmsAnimInst.generated.h"
 
+class ABaseCharacter;
+
 /**
  * 
  */
@@ -14,7 +16,27 @@ class THENEWWORLD_API UArmsAnimInst : public UAnimInstance
 {
 	GENERATED_BODY()
 	
-	
+public:
+
+	UArmsAnimInst();
+
+protected:
+
+	virtual void NativeInitializeAnimation() override;
+
+	virtual void NativeUpdateAnimation(float DeltaTime) override;
+
+private:
+
+	UPROPERTY()
+	ABaseCharacter* CharacterREF;
+
+//////////////////////////////////////////////////////////////////
+
+
+
+public:
+
 	
 	
 };

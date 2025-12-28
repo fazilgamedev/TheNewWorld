@@ -6,6 +6,9 @@
 #include "PickupSystem/PickupMaster.h"
 #include "WeaponPickup.generated.h"
 
+class UWeaponMaster;
+class ABaseCharacter;
+
 /**
  * 
  */
@@ -14,7 +17,14 @@ class THENEWWORLD_API AWeaponPickup : public APickupMaster
 {
 	GENERATED_BODY()
 	
-	
-	
+public:
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UWeaponMaster> WeaponToSpawn;
+
+	virtual void Interact_Implementation(ABaseCharacter* Interactor) override;
+
+	UFUNCTION(Server, Reliable)
+	void SR_Interact(ABaseCharacter* Interactor, TSubclassOf<UWeaponMaster> Weapon);
 	
 };
