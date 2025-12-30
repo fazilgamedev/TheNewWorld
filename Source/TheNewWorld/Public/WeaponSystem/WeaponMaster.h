@@ -8,6 +8,8 @@
 
 class USkeletalMesh;
 class AWeaponPickup;
+class UParticleSystem;
+class UAnimSequence;
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable )
@@ -27,6 +29,49 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName SocketToAttach;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Damage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Range;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FireRate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float AimOffset;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ADSFOV;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float VerticalRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float HorizontalRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SideRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FrontRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float RightRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float UpRecoil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Recoil_Vertical;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Recoil_Horizontal_Left;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Recoil_Horizontal_Right;
+
 
 protected:
 	// Called when the game starts

@@ -7,6 +7,7 @@
 #include "ArmsAnimInst.generated.h"
 
 class ABaseCharacter;
+class UWeaponMaster;
 
 /**
  * 
@@ -18,7 +19,47 @@ class THENEWWORLD_API UArmsAnimInst : public UAnimInstance
 	
 public:
 
-	UArmsAnimInst();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float Speed = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float Direction = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UWeaponMaster* CurrentWeapon = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FTransform SightTransform;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float AimAlpha = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FTransform RelativeHandTransform;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FTransform LHIKTransform;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float LHIKAlpha = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FVector SwayVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FRotator TurnRotation;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FVector TurnLocation;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float SideMove = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float FrontMove = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FTransform RecoilTransform;
 
 protected:
 
@@ -31,12 +72,42 @@ private:
 	UPROPERTY()
 	ABaseCharacter* CharacterREF;
 
+	UPROPERTY()
+	FRotator OldRotation;
+
+	UPROPERTY()
+	FTransform RecoilResetTransform;
+
 //////////////////////////////////////////////////////////////////
 
+	UFUNCTION()
+	void SetSightTransform();
 
+	UFUNCTION()
+	void SetRelativeHandTransform();
+
+	UFUNCTION()
+	void SetLHIKTransform();
+
+	UFUNCTION()
+	void WalkAnim(float DeltaTime);
+
+	UFUNCTION()
+	void HandSway(float DeltaTime);
+
+	UFUNCTION()
+	void DirectionalRotation(float &DirVar, float MoveVar, float DeltaTime, float U, float V, float W);
+
+	UFUNCTION()
+	void InterpRecoil(float DeltaTime);
+
+	UFUNCTION()
+	void InterpResetRecoil(float DeltaTime);
 
 public:
 
+	UFUNCTION()
+	void Firing();
 	
 	
 };

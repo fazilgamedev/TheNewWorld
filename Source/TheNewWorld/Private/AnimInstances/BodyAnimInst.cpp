@@ -20,6 +20,7 @@ void UBodyAnimInst::NativeUpdateAnimation(float DeltaTime)
 {
     Super::NativeUpdateAnimation(DeltaTime);
 
+    if(!CharacterREF) CharacterREF = Cast<ABaseCharacter>(TryGetPawnOwner());
     if(!CharacterREF) return;
 
     Speed = CharacterREF->GetVelocity().Size2D();

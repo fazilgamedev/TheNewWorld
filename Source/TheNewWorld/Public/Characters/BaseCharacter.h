@@ -9,6 +9,8 @@
 class UCameraComponent;
 class USkeletalMeshComponent;
 class UWeaponMaster;
+class UArmsAnimInst;
+class UBodyAnimInst;
 
 UCLASS()
 class THENEWWORLD_API ABaseCharacter : public ACharacter
@@ -37,6 +39,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float V_Sensitivity;
 
+	UPROPERTY()
+	float FrontMove;
+
+	UPROPERTY()
+	float SideMove;
+
+	UPROPERTY()
+	FVector WalkVector;
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -58,6 +69,18 @@ private:
 
 	UPROPERTY()
 	FHitResult FireHitResult;
+
+	UPROPERTY()
+	UArmsAnimInst* ArmsAnimInst;
+
+	UPROPERTY()
+	UBodyAnimInst* BodyAnimInst;
+
+	UPROPERTY()
+	float CurrentPhase;
+
+	UPROPERTY()
+	FVector CurrentAmp;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -141,6 +164,7 @@ public:
 	UFUNCTION()
 	bool SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn);
 	
-
+	UFUNCTION()
+	void ADS(float Value);
 	
 };

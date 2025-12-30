@@ -5,7 +5,19 @@
 #include "Characters/BaseCharacter.h"
 #include "WeaponSystem/WeaponMaster.h"
 
-void AWeaponPickup::Interact_Implementation(ABaseCharacter *Interactor)
+AWeaponPickup::AWeaponPickup()
+{
+
+}
+
+void AWeaponPickup::BeginPlay()
+{
+    Super::BeginPlay();
+
+    SetActorRotation(FRotator(90.f, 0.f, 0.f));
+}
+
+void AWeaponPickup::Interact_Implementation(ABaseCharacter *Interactor) 
 {
     SR_Interact(Interactor, WeaponToSpawn);
 }

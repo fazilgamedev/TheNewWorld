@@ -20,6 +20,12 @@ public:
 
 	UBodyAnimInst();
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float Speed;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float Direction;
+
 protected:
 
 	virtual void NativeInitializeAnimation() override;
@@ -37,12 +43,6 @@ private:
 
 public:
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float Speed;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float Direction;
-	
 	
 	
 };

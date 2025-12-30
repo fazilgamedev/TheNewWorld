@@ -8,6 +8,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Camera/CameraComponent.h"
 #include "PickupSystem/Interfaces/InteractInterface.h"
+#include "AnimInstances/ArmsAnimInst.h"
+#include "AnimInstances/BodyAnimInst.h"
 
 // Sets default values
 ABaseCharacter::ABaseCharacter()
@@ -26,14 +28,18 @@ ABaseCharacter::ABaseCharacter()
 
 	Arms->SetupAttachment(Camera);
 	Arms->SetOnlyOwnerSee(true);
+	Arms->SetCastShadow(false);
 
 	WeaponFP->SetupAttachment(Arms);
 	WeaponFP->SetOnlyOwnerSee(true);
+	WeaponFP->SetCastShadow(false);
 
 	WeaponTP->SetupAttachment(GetMesh());
 	WeaponTP->SetOwnerNoSee(true);
+	WeaponTP->SetCastHiddenShadow(true);
 
 	GetMesh()->SetOwnerNoSee(true);
+	GetMesh()->SetCastHiddenShadow(true);
 
 	CurrentWeaponINDEX = -1;
 
@@ -45,12 +51,34 @@ void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	ArmsAnimInst = Cast<UArmsAnimInst>(Arms->GetAnimInstance());
+
+	BodyAnimInst = Cast<UBodyAnimInst>(GetMesh()->GetAnimInstance());
+
 }
 
 // Called every frame
 void ABaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	float Speed = GetVelocity().Size2D();
+	float TargetFreq = 0.f;
+	FVector TargetAmp = FVector::ZeroVector;
+	if(Speed > 400.f){
+		TargetFreq = 13.96f;
+		TargetAmp = FVector(2.f, 2.f, 2.f);
+	}else if(Speed > 3.f){
+		TargetFreq = 10.47f;
+		TargetAmp = FVector(.5f, .5f, .5f);
+	}else{
+		TargetFreq = 3.14;
+		TargetAmp = FVector(.12f, .12f, .12f);
+	}
+	CurrentAmp = FMath::VInterpTo(CurrentAmp, TargetAmp, DeltaTime, 5.f);
+	CurrentPhase += DeltaTime * TargetFreq;
+	if(CurrentPhase > 6.28f) CurrentPhase -= 6.28f;
+	WalkVector = FVector(FMath::Sin(CurrentPhase) * CurrentAmp.X, FMath::Cos(CurrentPhase) * CurrentAmp.Y, FMath::Sin(CurrentPhase * 2.f) * CurrentAmp.Z);
 
 }
 
@@ -68,6 +96,7 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("Primary", IE_Pressed, this, &ABaseCharacter::SwitchPrimary);
 	PlayerInputComponent->BindAction("Secondary", IE_Pressed, this, &ABaseCharacter::SwitchSecondary);
 	PlayerInputComponent->BindAction("Unarmed", IE_Pressed, this, &ABaseCharacter::SwitchUnarmed);
+	PlayerInputComponent->BindAxis("ADS", this, &ABaseCharacter::ADS);
 
 }
 
@@ -82,11 +111,13 @@ void ABaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 void ABaseCharacter::MoveFront(float Value)
 {
 	AddMovementInput(GetActorForwardVector(), Value);
+	FrontMove = ArmsAnimInst->AimAlpha > .5f ? Value * .5f : Value;
 }
 
 void ABaseCharacter::MoveRight(float Value)
 {
 	AddMovementInput(GetActorRightVector(), Value);
+	SideMove = Value;
 }
 
 void ABaseCharacter::LookUp(float Value)
@@ -234,6 +265,7 @@ void ABaseCharacter::SwitchWeapons(int32 INDEX)
 
 bool ABaseCharacter::SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn)
 {
+	if(!WeaponToSpawn) return false;
 	if(!Weapons.IsValidIndex(CurrentWeaponINDEX)) SwitchWeapons(0);
 	UWeaponMaster* OldWeapon = GetCurrentWeapon();
 	if(OldWeapon){
@@ -243,4 +275,11 @@ bool ABaseCharacter::SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn)
 	}
 	UWeaponMaster* NewComp = Cast<UWeaponMaster>(AddComponentByClass(WeaponToSpawn, true, FTransform::Identity, false));
 	return SetCurrentWeapon(NewComp);
+}
+
+void ABaseCharacter::ADS(float Value)
+{
+	if(!GetCurrentWeapon()) return;
+	ArmsAnimInst->AimAlpha = FMath::FInterpTo(ArmsAnimInst->AimAlpha, Value, GetWorld()->GetDeltaSeconds(), 10.f);
+	//Camera->SetFieldOfView(FMath::FInterpTo(90.f, Value ? GetCurrentWeapon()->ADSFOV : 90.f, GetWorld()->GetDeltaSeconds(), 10.f));
 }

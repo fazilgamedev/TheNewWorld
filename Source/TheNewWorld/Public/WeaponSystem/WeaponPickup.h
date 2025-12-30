@@ -19,8 +19,16 @@ class THENEWWORLD_API AWeaponPickup : public APickupMaster
 	
 public:
 
+	AWeaponPickup();
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UWeaponMaster> WeaponToSpawn;
+
+protected:
+
+	virtual void BeginPlay() override;
+
+public:
 
 	virtual void Interact_Implementation(ABaseCharacter* Interactor) override;
 
