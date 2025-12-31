@@ -8,6 +8,7 @@
 
 class UCameraComponent;
 class USkeletalMeshComponent;
+class UStaticMeshComponent;
 class UWeaponMaster;
 class UArmsAnimInst;
 class UBodyAnimInst;
@@ -31,7 +32,19 @@ public:
 	USkeletalMeshComponent* WeaponTP;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UStaticMeshComponent* WeaponMagTP;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	USkeletalMeshComponent* WeaponFP;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UStaticMeshComponent* WeaponMagFP;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UWeaponMaster> MeleeClass;
+
+	UPROPERTY()
+	UWeaponMaster* Melee;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float H_Sensitivity;
@@ -112,10 +125,10 @@ private:
 	void SR_Interact(AActor* Target, ABaseCharacter* Interactor);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void MC_SetCurrentWeaponMesh(USkeletalMesh* NewMesh, FName SocketName);
+	void MC_SetCurrentWeaponMesh(USkeletalMesh* NewMesh, UStaticMesh* NewMagMesh, FName SocketName);
 
 	UFUNCTION(Server, Reliable)
-	void SR_SetCurrentWeaponMesh(USkeletalMesh* NewMesh, FName SocketName);
+	void SR_SetCurrentWeaponMesh(USkeletalMesh* NewMesh, UStaticMesh* NewMagMesh, FName SocketName);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MC_SetWeaponAtINDEX(UWeaponMaster* Weapon, int32 INDEX);
@@ -156,7 +169,7 @@ public:
 	bool SetCurrentWeapon(UWeaponMaster* Weapon);
 
 	UFUNCTION()
-	void SetCurrentWeaponMesh(USkeletalMesh* NewMesh, FName SocketName);
+	void SetCurrentWeaponMesh(USkeletalMesh* NewMesh, UStaticMesh* NewMagMesh, FName SocketName);
 
 	UFUNCTION()
 	void SwitchWeapons(int32 INDEX);

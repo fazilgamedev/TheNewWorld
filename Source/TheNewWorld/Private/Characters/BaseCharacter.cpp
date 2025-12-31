@@ -6,6 +6,7 @@
 #include "WeaponSystem/WeaponPickup.h"
 #include "PickupSystem/PickupMaster.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Camera/CameraComponent.h"
 #include "PickupSystem/Interfaces/InteractInterface.h"
 #include "AnimInstances/ArmsAnimInst.h"
@@ -20,7 +21,9 @@ ABaseCharacter::ABaseCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Arms = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Arms"));
 	WeaponFP = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponFP"));
+	WeaponMagFP = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMagFP"));
 	WeaponTP = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponTP"));
+	WeaponMagTP = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMagTP"));
 
 	Camera->SetupAttachment(GetRootComponent());
 	Camera->SetFieldOfView(90.f);
@@ -34,9 +37,17 @@ ABaseCharacter::ABaseCharacter()
 	WeaponFP->SetOnlyOwnerSee(true);
 	WeaponFP->SetCastShadow(false);
 
+	WeaponMagFP->SetupAttachment(WeaponFP);
+	WeaponMagFP->SetOnlyOwnerSee(true);
+	WeaponMagFP->SetCastShadow(false);
+
 	WeaponTP->SetupAttachment(GetMesh());
 	WeaponTP->SetOwnerNoSee(true);
 	WeaponTP->SetCastHiddenShadow(true);
+
+	WeaponMagTP->SetupAttachment(WeaponTP);
+	WeaponMagTP->SetOwnerNoSee(true);
+	WeaponMagTP->SetCastHiddenShadow(true);
 
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->SetCastHiddenShadow(true);
@@ -54,6 +65,9 @@ void ABaseCharacter::BeginPlay()
 	ArmsAnimInst = Cast<UArmsAnimInst>(Arms->GetAnimInstance());
 
 	BodyAnimInst = Cast<UBodyAnimInst>(GetMesh()->GetAnimInstance());
+
+	Melee = Cast<UWeaponMaster>(AddComponentByClass(MeleeClass, true, FTransform::Identity, false));
+
 
 }
 
@@ -136,10 +150,10 @@ void ABaseCharacter::OnRep_Weapons()
 
 void ABaseCharacter::OnRep_CurrentWeaponINDEX()
 {
-	if(CurrentWeaponINDEX == -1) SetCurrentWeaponMesh(nullptr, TEXT(""));
+	if(CurrentWeaponINDEX == -1) SetCurrentWeaponMesh(nullptr, nullptr, TEXT(""));
 	else{
-		if(GetCurrentWeapon()) SetCurrentWeaponMesh(GetCurrentWeapon()->WeaponMesh, GetCurrentWeapon()->SocketToAttach);
-		else SetCurrentWeaponMesh(nullptr, TEXT(""));
+		if(GetCurrentWeapon()) SetCurrentWeaponMesh(GetCurrentWeapon()->WeaponMesh, GetCurrentWeapon()->MagazineMesh,GetCurrentWeapon()->SocketToAttach);
+		else SetCurrentWeaponMesh(nullptr, nullptr, TEXT(""));
 	}
 }
 
@@ -148,7 +162,7 @@ void ABaseCharacter::SR_Interact_Implementation(AActor *Target, ABaseCharacter *
 	IInteractInterface::Execute_Interact(Target, Interactor);
 }
 
-void ABaseCharacter::MC_SetCurrentWeaponMesh_Implementation(USkeletalMesh *NewMesh, FName SocketName)
+void ABaseCharacter::MC_SetCurrentWeaponMesh_Implementation(USkeletalMesh *NewMesh, UStaticMesh *NewMagMesh, FName SocketName)
 {
 	if(!(WeaponTP && WeaponFP)) return;
 	if(NewMesh){
@@ -156,15 +170,19 @@ void ABaseCharacter::MC_SetCurrentWeaponMesh_Implementation(USkeletalMesh *NewMe
 		WeaponTP->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
 		WeaponFP->SetSkeletalMesh(NewMesh, true);
 		WeaponFP->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);		
+		if(NewMagMesh){
+			WeaponMagTP->SetStaticMesh(NewMagMesh);
+			WeaponMagFP->SetStaticMesh(NewMagMesh);
+		}
 	}else{
 		WeaponTP->SetSkeletalMesh(nullptr);
 		WeaponFP->SetSkeletalMesh(nullptr);
 	}
 }
 
-void ABaseCharacter::SR_SetCurrentWeaponMesh_Implementation(USkeletalMesh *NewMesh, FName SocketName)
+void ABaseCharacter::SR_SetCurrentWeaponMesh_Implementation(USkeletalMesh *NewMesh, UStaticMesh *NewMagMesh, FName SocketName)
 {
-	MC_SetCurrentWeaponMesh(NewMesh, SocketName);
+	MC_SetCurrentWeaponMesh(NewMesh, NewMagMesh, SocketName);
 }
 
 void ABaseCharacter::MC_SetWeaponAtINDEX_Implementation(UWeaponMaster *Weapon, int32 INDEX)
@@ -238,23 +256,23 @@ bool ABaseCharacter::SetCurrentWeapon(UWeaponMaster *Weapon)
 {
 	if(!Weapon){
 		if(SetWeaponAtINDEX(nullptr, CurrentWeaponINDEX)){
-			SetCurrentWeaponMesh(nullptr, TEXT(""));
+			SetCurrentWeaponMesh(nullptr, nullptr,TEXT(""));
 			return true;
 		}
 		return false;
 	}else{
 		if(SetWeaponAtINDEX(Weapon, CurrentWeaponINDEX)){ 
-			SetCurrentWeaponMesh(Weapon->WeaponMesh, Weapon->SocketToAttach);
+			SetCurrentWeaponMesh(Weapon->WeaponMesh, Weapon->MagazineMesh, Weapon->SocketToAttach);
 			return true;
 		}
 		return false;
 	}
 }
 
-void ABaseCharacter::SetCurrentWeaponMesh(USkeletalMesh *NewMesh, FName SocketName)
+void ABaseCharacter::SetCurrentWeaponMesh(USkeletalMesh *NewMesh, UStaticMesh *NewMagMesh, FName SocketName)
 {
-	if(HasAuthority()) MC_SetCurrentWeaponMesh(NewMesh, SocketName);
-	else SR_SetCurrentWeaponMesh(NewMesh, SocketName);
+	if(HasAuthority()) MC_SetCurrentWeaponMesh(NewMesh, NewMagMesh, SocketName);
+	else SR_SetCurrentWeaponMesh(NewMesh, NewMagMesh, SocketName);
 }
 
 void ABaseCharacter::SwitchWeapons(int32 INDEX)

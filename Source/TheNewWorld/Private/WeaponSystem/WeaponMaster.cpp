@@ -18,6 +18,7 @@ UWeaponMaster::UWeaponMaster()
 	SetIsReplicatedByDefault(true);
 
 	WeaponMesh = nullptr;
+	MagazineMesh = nullptr;
 	PickupClass = nullptr;
 	SocketToAttach = TEXT("");
 	

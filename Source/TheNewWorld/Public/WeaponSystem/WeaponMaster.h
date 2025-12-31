@@ -25,6 +25,9 @@ public:
 	USkeletalMesh* WeaponMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UStaticMesh* MagazineMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AWeaponPickup> PickupClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
