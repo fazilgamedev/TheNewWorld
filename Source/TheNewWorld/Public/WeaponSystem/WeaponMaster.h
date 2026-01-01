@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "WeaponSystem/WeaponEnums.h"
 #include "WeaponMaster.generated.h"
 
 class USkeletalMesh;
@@ -47,6 +48,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ADSFOV;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EWeaponName WeaponName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float VerticalRecoil;

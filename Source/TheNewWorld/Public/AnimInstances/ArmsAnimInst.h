@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "WeaponSystem/WeaponEnums.h"
 #include "ArmsAnimInst.generated.h"
 
 class ABaseCharacter;
@@ -20,19 +21,22 @@ class THENEWWORLD_API UArmsAnimInst : public UAnimInstance
 public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float Speed = 0.f;
+	float Speed;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float Direction = 0.f;
+	float Direction;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UWeaponMaster* CurrentWeapon = nullptr;
+	UWeaponMaster* CurrentWeapon;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	EWeaponName WeaponName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FTransform SightTransform;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float AimAlpha = 0.f;
+	float AimAlpha;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FTransform RelativeHandTransform;
@@ -41,7 +45,7 @@ public:
 	FTransform LHIKTransform;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float LHIKAlpha = 0.f;
+	float LHIKAlpha;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FVector SwayVector;
@@ -53,10 +57,10 @@ public:
 	FVector TurnLocation;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float SideMove = 0.f;
+	float SideMove;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float FrontMove = 0.f;
+	float FrontMove;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FTransform RecoilTransform;

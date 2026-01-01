@@ -41,6 +41,8 @@ void UArmsAnimInst::NativeUpdateAnimation(float DeltaTime)
 
 		LHIKAlpha = 1.f;
 
+		WeaponName = CurrentWeapon->WeaponName;
+
 		SetSightTransform();
 
 		SetRelativeHandTransform();
@@ -59,6 +61,7 @@ void UArmsAnimInst::NativeUpdateAnimation(float DeltaTime)
 
 		LHIKAlpha = 0.f;
 		AimAlpha = 0.f;
+		WeaponName = EWeaponName::None;
 	}
 }
 

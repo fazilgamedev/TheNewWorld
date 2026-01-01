@@ -52,8 +52,6 @@ ABaseCharacter::ABaseCharacter()
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->SetCastHiddenShadow(true);
 
-	CurrentWeaponINDEX = -1;
-
 	Weapons.Init(nullptr, 2);
 }
 
@@ -65,9 +63,6 @@ void ABaseCharacter::BeginPlay()
 	ArmsAnimInst = Cast<UArmsAnimInst>(Arms->GetAnimInstance());
 
 	BodyAnimInst = Cast<UBodyAnimInst>(GetMesh()->GetAnimInstance());
-
-	Melee = Cast<UWeaponMaster>(AddComponentByClass(MeleeClass, true, FTransform::Identity, false));
-
 
 }
 
@@ -173,10 +168,15 @@ void ABaseCharacter::MC_SetCurrentWeaponMesh_Implementation(USkeletalMesh *NewMe
 		if(NewMagMesh){
 			WeaponMagTP->SetStaticMesh(NewMagMesh);
 			WeaponMagFP->SetStaticMesh(NewMagMesh);
+		}else{
+			WeaponMagTP->SetStaticMesh(nullptr);
+			WeaponMagFP->SetStaticMesh(nullptr);
 		}
 	}else{
 		WeaponTP->SetSkeletalMesh(nullptr);
 		WeaponFP->SetSkeletalMesh(nullptr);
+		WeaponMagTP->SetStaticMesh(nullptr);
+		WeaponMagFP->SetStaticMesh(nullptr);
 	}
 }
 

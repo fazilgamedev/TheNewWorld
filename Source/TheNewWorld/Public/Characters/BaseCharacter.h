@@ -41,12 +41,6 @@ public:
 	UStaticMeshComponent* WeaponMagFP;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UWeaponMaster> MeleeClass;
-
-	UPROPERTY()
-	UWeaponMaster* Melee;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float H_Sensitivity;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
