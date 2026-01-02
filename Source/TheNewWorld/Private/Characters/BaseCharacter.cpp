@@ -18,18 +18,13 @@ ABaseCharacter::ABaseCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Arms = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Arms"));
 	WeaponFP = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponFP"));
 	WeaponMagFP = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMagFP"));
 	WeaponTP = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponTP"));
 	WeaponMagTP = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMagTP"));
 
-	Camera->SetupAttachment(GetRootComponent());
-	Camera->SetFieldOfView(90.f);
-	Camera->bUsePawnControlRotation = true;
-
-	Arms->SetupAttachment(Camera);
+	Arms->SetupAttachment(GetRootComponent());
 	Arms->SetOnlyOwnerSee(true);
 	Arms->SetCastShadow(false);
 
@@ -59,6 +54,13 @@ ABaseCharacter::ABaseCharacter()
 void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Camera = Cast<UCameraComponent>(AddComponentByClass(UCameraComponent::StaticClass(), true, FTransform::Identity, false));
+
+	Camera->SetFieldOfView(120.f);
+	Camera->bUsePawnControlRotation = true;
+
+	Camera->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("head"));
 	
 	ArmsAnimInst = Cast<UArmsAnimInst>(Arms->GetAnimInstance());
 

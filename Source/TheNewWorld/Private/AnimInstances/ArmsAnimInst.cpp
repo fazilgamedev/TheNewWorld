@@ -27,6 +27,10 @@ void UArmsAnimInst::NativeUpdateAnimation(float DeltaTime)
 
 	Direction = CalculateDirection(CharacterREF->GetVelocity(), CharacterREF->GetActorRotation());
 
+	float P = CharacterREF->GetControlRotation().Pitch;
+
+	Pitch = P > 180.f ? 360 - P : -P;
+
 	CurrentWeapon = CharacterREF->GetCurrentWeapon();
 
 	DirectionalRotation(SideMove, CharacterREF->SideMove, DeltaTime, 1.f, 6.f, 11.f);
@@ -67,8 +71,8 @@ void UArmsAnimInst::NativeUpdateAnimation(float DeltaTime)
 
 void UArmsAnimInst::SetSightTransform()
 {
-	FTransform Temp = CharacterREF->Camera->GetComponentTransform().GetRelativeTransform(CharacterREF->Arms->GetComponentTransform());
-	SightTransform = FTransform(Temp.GetRotation(), Temp.GetRotation().GetForwardVector() * CurrentWeapon->AimOffset + Temp.GetLocation());
+	FTransform Temp = CharacterREF->Camera->GetComponentTransform().GetRelativeTransform(CharacterREF->Arms->GetSocketTransform(TEXT("head"), ERelativeTransformSpace::RTS_World));
+	SightTransform = FTransform(Temp.GetRotation(), /*Temp.GetRotation().GetForwardVector() * CurrentWeapon->AimOffset / 100.f + */Temp.GetLocation()); // If dynamic offset of sight is needed take the comments off but make sure to lower the veritcal sensitivity cause if you don't you might see clipping 
 }
 
 void UArmsAnimInst::SetRelativeHandTransform()

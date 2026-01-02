@@ -27,6 +27,9 @@ public:
 	float Direction;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float Pitch;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UWeaponMaster* CurrentWeapon;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
