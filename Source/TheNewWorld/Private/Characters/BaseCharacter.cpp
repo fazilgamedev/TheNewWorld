@@ -48,6 +48,7 @@ ABaseCharacter::ABaseCharacter()
 	GetMesh()->SetCastHiddenShadow(true);
 
 	Weapons.Init(nullptr, 2);
+	
 }
 
 // Called when the game starts or when spawned
@@ -65,6 +66,8 @@ void ABaseCharacter::BeginPlay()
 	ArmsAnimInst = Cast<UArmsAnimInst>(Arms->GetAnimInstance());
 
 	BodyAnimInst = Cast<UBodyAnimInst>(GetMesh()->GetAnimInstance());
+
+	SwitchWeapons(-1);
 
 }
 
@@ -121,14 +124,15 @@ void ABaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 
 void ABaseCharacter::MoveFront(float Value)
 {
-	AddMovementInput(GetActorForwardVector(), Value);
-	FrontMove = ArmsAnimInst->AimAlpha > .5f ? Value * .5f : Value;
+	if(Value != 0.f) AddMovementInput(GetActorForwardVector(), Value);
+	if(ArmsAnimInst) FrontMove = ArmsAnimInst->AimAlpha > .5f ? Value * .5f : Value;
+	else FrontMove = Value;
 }
 
 void ABaseCharacter::MoveRight(float Value)
-{
+{	
 	AddMovementInput(GetActorRightVector(), Value);
-	SideMove = Value;
+	SideMove = Value * 2.f;
 }
 
 void ABaseCharacter::LookUp(float Value)
@@ -300,6 +304,6 @@ bool ABaseCharacter::SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn)
 void ABaseCharacter::ADS(float Value)
 {
 	if(!GetCurrentWeapon()) return;
-	ArmsAnimInst->AimAlpha = FMath::FInterpTo(ArmsAnimInst->AimAlpha, Value, GetWorld()->GetDeltaSeconds(), 10.f);
+	if(ArmsAnimInst) ArmsAnimInst->AimAlpha = FMath::FInterpTo(ArmsAnimInst->AimAlpha, Value, GetWorld()->GetDeltaSeconds(), 10.f);
 	//Camera->SetFieldOfView(FMath::FInterpTo(90.f, Value ? GetCurrentWeapon()->ADSFOV : 90.f, GetWorld()->GetDeltaSeconds(), 10.f));
 }
