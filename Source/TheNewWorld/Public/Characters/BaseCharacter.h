@@ -13,6 +13,19 @@ class UWeaponMaster;
 class UArmsAnimInst;
 class UBodyAnimInst;
 
+USTRUCT(BlueprintType)
+struct FLoadout
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<UWeaponMaster*> Weapons;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 CurrentWeaponINDEX;
+
+};
+
 UCLASS()
 class THENEWWORLD_API ABaseCharacter : public ACharacter
 {
@@ -103,26 +116,14 @@ private:
 	UFUNCTION()
 	void LookRight(float Value);
 
-	UPROPERTY(ReplicatedUsing = OnRep_Weapons)
-	TArray<UWeaponMaster*> Weapons;
+	UPROPERTY(ReplicatedUsing = OnRep_Loadout)
+	FLoadout Loadout;
 
 	UFUNCTION()
-	void OnRep_Weapons();
-
-	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeaponINDEX)
-	int32 CurrentWeaponINDEX;
-
-	UFUNCTION()
-	void OnRep_CurrentWeaponINDEX();
+	void OnRep_Loadout();
 
 	UFUNCTION(Server, Reliable)
 	void SR_Interact(AActor* Target, ABaseCharacter* Interactor);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void MC_SetCurrentWeaponMesh(USkeletalMesh* NewMesh, UStaticMesh* NewMagMesh, FName SocketName);
-
-	UFUNCTION(Server, Reliable)
-	void SR_SetCurrentWeaponMesh(USkeletalMesh* NewMesh, UStaticMesh* NewMagMesh, FName SocketName);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MC_SetWeaponAtINDEX(UWeaponMaster* Weapon, int32 INDEX);
@@ -154,22 +155,22 @@ public:
 	UWeaponMaster* GetWeaponAtINDEX(int32 INDEX);
 
 	UFUNCTION()
-	bool SetWeaponAtINDEX(UWeaponMaster* Weapon, int32 INDEX);
+	void SetWeaponAtINDEX(UWeaponMaster* Weapon, int32 INDEX);
 
 	UFUNCTION()
 	UWeaponMaster* GetCurrentWeapon();
 
 	UFUNCTION()
-	bool SetCurrentWeapon(UWeaponMaster* Weapon);
+	void SetCurrentWeapon(UWeaponMaster* Weapon);
 
 	UFUNCTION()
-	void SetCurrentWeaponMesh(USkeletalMesh* NewMesh, UStaticMesh* NewMagMesh, FName SocketName);
+	void SetCurrentWeaponMesh();
 
 	UFUNCTION()
 	void SwitchWeapons(int32 INDEX);
 
 	UFUNCTION()
-	bool SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn);
+	void SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn);
 	
 	UFUNCTION()
 	void ADS(float Value);

@@ -19,7 +19,7 @@ UWeaponMaster::UWeaponMaster()
 
 	WeaponMesh = nullptr;
 	MagazineMesh = nullptr;
-	PickupClass = nullptr;
+	PickupClass = AWeaponPickup::StaticClass();
 	SocketToAttach = TEXT("");
 	WeaponName = EWeaponName::None;
 	

@@ -19,6 +19,7 @@ ABaseCharacter::ABaseCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	Arms = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Arms"));
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	WeaponFP = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponFP"));
 	WeaponMagFP = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMagFP"));
 	WeaponTP = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponTP"));
@@ -27,6 +28,10 @@ ABaseCharacter::ABaseCharacter()
 	Arms->SetupAttachment(GetRootComponent());
 	Arms->SetOnlyOwnerSee(true);
 	Arms->SetCastShadow(false);
+
+	Camera->SetupAttachment(Arms, "head");
+	Camera->SetFieldOfView(120.f);
+	Camera->bUsePawnControlRotation = true;
 
 	WeaponFP->SetupAttachment(Arms);
 	WeaponFP->SetOnlyOwnerSee(true);
@@ -47,7 +52,8 @@ ABaseCharacter::ABaseCharacter()
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->SetCastHiddenShadow(true);
 
-	Weapons.Init(nullptr, 2);
+	Loadout.Weapons.Init(nullptr, 2);
+	Loadout.CurrentWeaponINDEX = 0;
 	
 }
 
@@ -56,18 +62,16 @@ void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Camera = Cast<UCameraComponent>(AddComponentByClass(UCameraComponent::StaticClass(), true, FTransform::Identity, false));
+	// Camera = Cast<UCameraComponent>(AddComponentByClass(UCameraComponent::StaticClass(), true, FTransform::Identity, false));
 
-	Camera->SetFieldOfView(120.f);
-	Camera->bUsePawnControlRotation = true;
+	// Camera->SetFieldOfView(120.f);
+	// Camera->bUsePawnControlRotation = true;
 
-	Camera->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("head"));
+	// Camera->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("head"));
 	
 	ArmsAnimInst = Cast<UArmsAnimInst>(Arms->GetAnimInstance());
 
 	BodyAnimInst = Cast<UBodyAnimInst>(GetMesh()->GetAnimInstance());
-
-	SwitchWeapons(-1);
 
 }
 
@@ -118,8 +122,7 @@ void ABaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ABaseCharacter, Weapons);
-	DOREPLIFETIME(ABaseCharacter, CurrentWeaponINDEX);
+	DOREPLIFETIME(ABaseCharacter, Loadout);
 }
 
 void ABaseCharacter::MoveFront(float Value)
@@ -145,17 +148,9 @@ void ABaseCharacter::LookRight(float Value)
 	AddControllerYawInput(Value * H_Sensitivity);
 }
 
-void ABaseCharacter::OnRep_Weapons()
+void ABaseCharacter::OnRep_Loadout()
 {
-}
-
-void ABaseCharacter::OnRep_CurrentWeaponINDEX()
-{
-	if(CurrentWeaponINDEX == -1) SetCurrentWeaponMesh(nullptr, nullptr, TEXT(""));
-	else{
-		if(GetCurrentWeapon()) SetCurrentWeaponMesh(GetCurrentWeapon()->WeaponMesh, GetCurrentWeapon()->MagazineMesh,GetCurrentWeapon()->SocketToAttach);
-		else SetCurrentWeaponMesh(nullptr, nullptr, TEXT(""));
-	}
+	SetCurrentWeaponMesh();
 }
 
 void ABaseCharacter::SR_Interact_Implementation(AActor *Target, ABaseCharacter *Interactor)
@@ -163,37 +158,10 @@ void ABaseCharacter::SR_Interact_Implementation(AActor *Target, ABaseCharacter *
 	IInteractInterface::Execute_Interact(Target, Interactor);
 }
 
-void ABaseCharacter::MC_SetCurrentWeaponMesh_Implementation(USkeletalMesh *NewMesh, UStaticMesh *NewMagMesh, FName SocketName)
-{
-	if(!(WeaponTP && WeaponFP)) return;
-	if(NewMesh){
-		WeaponTP->SetSkeletalMesh(NewMesh, true);
-		WeaponTP->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
-		WeaponFP->SetSkeletalMesh(NewMesh, true);
-		WeaponFP->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);		
-		if(NewMagMesh){
-			WeaponMagTP->SetStaticMesh(NewMagMesh);
-			WeaponMagFP->SetStaticMesh(NewMagMesh);
-		}else{
-			WeaponMagTP->SetStaticMesh(nullptr);
-			WeaponMagFP->SetStaticMesh(nullptr);
-		}
-	}else{
-		WeaponTP->SetSkeletalMesh(nullptr);
-		WeaponFP->SetSkeletalMesh(nullptr);
-		WeaponMagTP->SetStaticMesh(nullptr);
-		WeaponMagFP->SetStaticMesh(nullptr);
-	}
-}
-
-void ABaseCharacter::SR_SetCurrentWeaponMesh_Implementation(USkeletalMesh *NewMesh, UStaticMesh *NewMagMesh, FName SocketName)
-{
-	MC_SetCurrentWeaponMesh(NewMesh, NewMagMesh, SocketName);
-}
-
 void ABaseCharacter::MC_SetWeaponAtINDEX_Implementation(UWeaponMaster *Weapon, int32 INDEX)
 {
-	if(Weapons.IsValidIndex(INDEX)) Weapons[INDEX] = Weapon;
+	if(Loadout.Weapons.IsValidIndex(INDEX)) Loadout.Weapons[INDEX] = Weapon;
+	if(HasAuthority()) SetCurrentWeaponMesh();
 }
 
 void ABaseCharacter::SR_SetWeaponAtINDEX_Implementation(UWeaponMaster *Weapon, int32 INDEX)
@@ -203,9 +171,9 @@ void ABaseCharacter::SR_SetWeaponAtINDEX_Implementation(UWeaponMaster *Weapon, i
 
 void ABaseCharacter::MC_SwitchWeapons_Implementation(int32 INDEX)
 {
-	if(CurrentWeaponINDEX == INDEX) return;
-	CurrentWeaponINDEX = INDEX;
-	if(HasAuthority()) OnRep_CurrentWeaponINDEX();
+	if(Loadout.CurrentWeaponINDEX == INDEX) return;
+	Loadout.CurrentWeaponINDEX = INDEX;
+	OnRep_Loadout();
 }
 
 void ABaseCharacter::SR_SwitchWeapons_Implementation(int32 INDEX)
@@ -240,45 +208,48 @@ void ABaseCharacter::SwitchUnarmed()
 
 UWeaponMaster *ABaseCharacter::GetWeaponAtINDEX(int32 INDEX)
 {
-    return Weapons.IsValidIndex(INDEX) ? Weapons[INDEX] : nullptr;
+    return Loadout.Weapons.IsValidIndex(INDEX) ? Loadout.Weapons[INDEX] : nullptr;
 }
 
-bool ABaseCharacter::SetWeaponAtINDEX(UWeaponMaster *Weapon, int32 INDEX)
+void ABaseCharacter::SetWeaponAtINDEX(UWeaponMaster *Weapon, int32 INDEX)
 {
-	if(Weapons.IsValidIndex(INDEX)){
-		if(HasAuthority()) MC_SetWeaponAtINDEX(Weapon, INDEX);
-		else SR_SetWeaponAtINDEX(Weapon, INDEX);
-		return true;
-	}
-	return false;
+	if(!Loadout.Weapons.IsValidIndex(INDEX)) return;
+	if(HasAuthority()) MC_SetWeaponAtINDEX(Weapon, INDEX);
+	else SR_SetWeaponAtINDEX(Weapon, INDEX);
 }
 
 UWeaponMaster *ABaseCharacter::GetCurrentWeapon()
 {
-    return Weapons.IsValidIndex(CurrentWeaponINDEX) ? GetWeaponAtINDEX(CurrentWeaponINDEX) : nullptr;
+    return Loadout.Weapons.IsValidIndex(Loadout.CurrentWeaponINDEX) ? GetWeaponAtINDEX(Loadout.CurrentWeaponINDEX) : nullptr;
 }
 
-bool ABaseCharacter::SetCurrentWeapon(UWeaponMaster *Weapon)
+void ABaseCharacter::SetCurrentWeapon(UWeaponMaster *Weapon)
 {
-	if(!Weapon){
-		if(SetWeaponAtINDEX(nullptr, CurrentWeaponINDEX)){
-			SetCurrentWeaponMesh(nullptr, nullptr,TEXT(""));
-			return true;
+	SetWeaponAtINDEX(Weapon, Loadout.CurrentWeaponINDEX);
+}
+
+void ABaseCharacter::SetCurrentWeaponMesh()
+{
+	if(!WeaponTP || !WeaponFP || !WeaponMagFP || !WeaponMagTP) return;
+	UWeaponMaster* Weapon = GetCurrentWeapon();
+	if(Weapon && Weapon->WeaponMesh){
+		WeaponTP->SetSkeletalMesh(Weapon->WeaponMesh, true);
+		WeaponTP->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, Weapon->SocketToAttach);
+		WeaponFP->SetSkeletalMesh(Weapon->WeaponMesh, true);
+		WeaponFP->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetIncludingScale, Weapon->SocketToAttach);		
+		if(Weapon->MagazineMesh){
+			WeaponMagTP->SetStaticMesh(Weapon->MagazineMesh);
+			WeaponMagFP->SetStaticMesh(Weapon->MagazineMesh);
+		}else{
+			WeaponMagTP->SetStaticMesh(nullptr);
+			WeaponMagFP->SetStaticMesh(nullptr);
 		}
-		return false;
 	}else{
-		if(SetWeaponAtINDEX(Weapon, CurrentWeaponINDEX)){ 
-			SetCurrentWeaponMesh(Weapon->WeaponMesh, Weapon->MagazineMesh, Weapon->SocketToAttach);
-			return true;
-		}
-		return false;
+		WeaponTP->SetSkeletalMesh(nullptr);
+		WeaponFP->SetSkeletalMesh(nullptr);
+		WeaponMagTP->SetStaticMesh(nullptr);
+		WeaponMagFP->SetStaticMesh(nullptr);
 	}
-}
-
-void ABaseCharacter::SetCurrentWeaponMesh(USkeletalMesh *NewMesh, UStaticMesh *NewMagMesh, FName SocketName)
-{
-	if(HasAuthority()) MC_SetCurrentWeaponMesh(NewMesh, NewMagMesh, SocketName);
-	else SR_SetCurrentWeaponMesh(NewMesh, NewMagMesh, SocketName);
 }
 
 void ABaseCharacter::SwitchWeapons(int32 INDEX)
@@ -287,10 +258,10 @@ void ABaseCharacter::SwitchWeapons(int32 INDEX)
 	else SR_SwitchWeapons(INDEX);
 }
 
-bool ABaseCharacter::SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn)
+void ABaseCharacter::SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn)
 {
-	if(!WeaponToSpawn) return false;
-	if(!Weapons.IsValidIndex(CurrentWeaponINDEX)) SwitchWeapons(0);
+	if(!WeaponToSpawn) return;
+	if(!Loadout.Weapons.IsValidIndex(Loadout.CurrentWeaponINDEX)) SwitchWeapons(0);
 	UWeaponMaster* OldWeapon = GetCurrentWeapon();
 	if(OldWeapon){
 		GetWorld()->SpawnActor<AWeaponPickup>(OldWeapon->PickupClass, GetActorLocation() + GetActorForwardVector() * 100.f, FRotator(30.f, 0.f, 0.f));
