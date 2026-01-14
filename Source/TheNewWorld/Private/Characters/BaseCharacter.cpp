@@ -11,6 +11,8 @@
 #include "PickupSystem/Interfaces/InteractInterface.h"
 #include "AnimInstances/ArmsAnimInst.h"
 #include "AnimInstances/BodyAnimInst.h"
+#include "Kismet/GameplayStatics.h"
+#include "DrawDebugHelpers.h"
 
 // Sets default values
 ABaseCharacter::ABaseCharacter()
@@ -62,16 +64,17 @@ void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Camera = Cast<UCameraComponent>(AddComponentByClass(UCameraComponent::StaticClass(), true, FTransform::Identity, false));
-
-	// Camera->SetFieldOfView(120.f);
-	// Camera->bUsePawnControlRotation = true;
-
-	// Camera->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("head"));
+	PCREF = Cast<APlayerController>(GetController());
+	if(PCREF && PCREF->PlayerCameraManager){
+		PCREF->PlayerCameraManager->ViewPitchMin = -70.f;
+		PCREF->PlayerCameraManager->ViewPitchMax = 70.f;
+	}
 	
 	ArmsAnimInst = Cast<UArmsAnimInst>(Arms->GetAnimInstance());
 
 	BodyAnimInst = Cast<UBodyAnimInst>(GetMesh()->GetAnimInstance());
+
+	SwitchUnarmed();
 
 }
 
@@ -80,24 +83,25 @@ void ABaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	float Speed = GetVelocity().Size2D();
-	float TargetFreq = 0.f;
-	FVector TargetAmp = FVector::ZeroVector;
-	if(Speed > 400.f){
-		TargetFreq = 13.96f;
-		TargetAmp = FVector(2.f, 2.f, 2.f);
-	}else if(Speed > 3.f){
-		TargetFreq = 10.47f;
-		TargetAmp = FVector(.5f, .5f, .5f);
-	}else{
-		TargetFreq = 3.14;
-		TargetAmp = FVector(.12f, .12f, .12f);
+	if(IsLocallyControlled()){
+		float Speed = GetVelocity().Size2D();
+		float TargetFreq = 0.f;
+		FVector TargetAmp = FVector::ZeroVector;
+		if(Speed > 400.f){
+			TargetFreq = 13.96f;
+			TargetAmp = FVector(2.f, 2.f, 2.f);
+		}else if(Speed > 3.f){
+			TargetFreq = 10.47f;
+			TargetAmp = FVector(.5f, .5f, .5f);
+		}else{
+			TargetFreq = 3.14;
+			TargetAmp = FVector(.12f, .12f, .12f);
+		}
+		CurrentAmp = FMath::VInterpTo(CurrentAmp, TargetAmp, DeltaTime, 5.f);
+		CurrentPhase += DeltaTime * TargetFreq;
+		if(CurrentPhase > 6.28f) CurrentPhase -= 6.28f;
+		WalkVector = FVector(FMath::Sin(CurrentPhase) * CurrentAmp.X, FMath::Cos(CurrentPhase) * CurrentAmp.Y, FMath::Sin(CurrentPhase * 2.f) * CurrentAmp.Z);
 	}
-	CurrentAmp = FMath::VInterpTo(CurrentAmp, TargetAmp, DeltaTime, 5.f);
-	CurrentPhase += DeltaTime * TargetFreq;
-	if(CurrentPhase > 6.28f) CurrentPhase -= 6.28f;
-	WalkVector = FVector(FMath::Sin(CurrentPhase) * CurrentAmp.X, FMath::Cos(CurrentPhase) * CurrentAmp.Y, FMath::Sin(CurrentPhase * 2.f) * CurrentAmp.Z);
-
 }
 
 // Called to bind functionality to input
@@ -109,12 +113,14 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAxis("MoveRight", this, &ABaseCharacter::MoveRight);
 	PlayerInputComponent->BindAxis("LookUp", this, &ABaseCharacter::LookUp);
 	PlayerInputComponent->BindAxis("LookRight", this, &ABaseCharacter::LookRight);
+	PlayerInputComponent->BindAxis("ADS", this, &ABaseCharacter::ADS);
 
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &ABaseCharacter::Interacting);
 	PlayerInputComponent->BindAction("Primary", IE_Pressed, this, &ABaseCharacter::SwitchPrimary);
 	PlayerInputComponent->BindAction("Secondary", IE_Pressed, this, &ABaseCharacter::SwitchSecondary);
 	PlayerInputComponent->BindAction("Unarmed", IE_Pressed, this, &ABaseCharacter::SwitchUnarmed);
-	PlayerInputComponent->BindAxis("ADS", this, &ABaseCharacter::ADS);
+	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &ABaseCharacter::StartAttack);
+	PlayerInputComponent->BindAction("Attack", IE_Released, this, &ABaseCharacter::StopAttack);
 
 }
 
@@ -206,6 +212,50 @@ void ABaseCharacter::SwitchUnarmed()
 	SwitchWeapons(-1);
 }
 
+void ABaseCharacter::OnRep_bCanAttack()
+{
+	Fire();
+}
+
+void ABaseCharacter::SR_Fire_Implementation()
+{
+	FHitResult FireHitResult;
+	FVector S = WeaponFP->GetSocketLocation(TEXT("Muzzle"));
+	FVector E = S + GetControlRotation().Vector() * GetCurrentWeapon()->Range;
+	FCollisionQueryParams P;
+	P.AddIgnoredActor(this);
+	P.bTraceComplex = true;
+	//DrawDebugLine(GetWorld(), S, E, FColor::Red, false, 1.f, 1, 2.f);
+	AActor* HitActor = nullptr;
+	ArmsAnimInst->Firing();
+	if(GetWorld()->LineTraceSingleByChannel(FireHitResult, S, E, ECollisionChannel::ECC_Visibility, P)){
+		HitActor = FireHitResult.GetActor();
+	}
+	MC_Fire(FireHitResult.Location, FireHitResult.ImpactNormal.Rotation(), HitActor);	
+}
+
+void ABaseCharacter::MC_Fire_Implementation(FVector HitLoc, FRotator HitRot, AActor *HitActor)
+{
+	if(IsLocallyControlled()) WeaponFP->PlayAnimation(GetCurrentWeapon()->FireAnim, false);
+	else WeaponTP->PlayAnimation(GetCurrentWeapon()->FireAnim, false);
+	if(!HitActor) return;
+	if(HitActor->ActorHasTag(TEXT("Stone"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[0], FTransform(HitRot, HitLoc));
+	else if(HitActor->ActorHasTag(TEXT("Metal"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[1], FTransform(HitRot, HitLoc));
+	else if(HitActor->ActorHasTag(TEXT("Wood"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[2], FTransform(HitRot, HitLoc));
+	else UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[0], FTransform(HitRot, HitLoc));
+}
+
+void ABaseCharacter::Fire()
+{
+	if(bCanAttack && GetCurrentWeapon()){
+		SR_Fire();
+		GetWorldTimerManager().SetTimer(FireHandle, this, &ABaseCharacter::SR_Fire, GetCurrentWeapon()->FireRate, true);
+	}else{
+		GetWorldTimerManager().ClearTimer(FireHandle);
+		FireHandle.Invalidate();
+	}
+}
+
 UWeaponMaster *ABaseCharacter::GetWeaponAtINDEX(int32 INDEX)
 {
     return Loadout.Weapons.IsValidIndex(INDEX) ? Loadout.Weapons[INDEX] : nullptr;
@@ -276,5 +326,17 @@ void ABaseCharacter::ADS(float Value)
 {
 	if(!GetCurrentWeapon()) return;
 	if(ArmsAnimInst) ArmsAnimInst->AimAlpha = FMath::FInterpTo(ArmsAnimInst->AimAlpha, Value, GetWorld()->GetDeltaSeconds(), 10.f);
-	//Camera->SetFieldOfView(FMath::FInterpTo(90.f, Value ? GetCurrentWeapon()->ADSFOV : 90.f, GetWorld()->GetDeltaSeconds(), 10.f));
+	Camera->SetFieldOfView(FMath::Lerp(120.f, GetCurrentWeapon()->ADSFOV, ArmsAnimInst->AimAlpha));
+}
+
+void ABaseCharacter::StartAttack()
+{
+	bCanAttack = true;
+	OnRep_bCanAttack();
+}
+
+void ABaseCharacter::StopAttack()
+{
+	bCanAttack = false;
+	OnRep_bCanAttack();
 }

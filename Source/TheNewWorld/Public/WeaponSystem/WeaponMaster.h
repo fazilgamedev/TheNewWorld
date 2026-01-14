@@ -50,6 +50,12 @@ public:
 	float ADSFOV;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UAnimSequence* FireAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<UParticleSystem*> EFX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EWeaponName WeaponName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

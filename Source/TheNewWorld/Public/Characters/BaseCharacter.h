@@ -12,6 +12,7 @@ class UStaticMeshComponent;
 class UWeaponMaster;
 class UArmsAnimInst;
 class UBodyAnimInst;
+class APlayerContoller;
 
 USTRUCT(BlueprintType)
 struct FLoadout
@@ -85,10 +86,10 @@ public:
 private:
 
 	UPROPERTY()
-	FTimerHandle FireHandle;
+	APlayerController* PCREF;
 
 	UPROPERTY()
-	FHitResult FireHitResult;
+	FTimerHandle FireHandle;
 
 	UPROPERTY()
 	UArmsAnimInst* ArmsAnimInst;
@@ -149,6 +150,21 @@ private:
 	UFUNCTION()
 	void SwitchUnarmed();
 
+	UPROPERTY(ReplicatedUsing = OnRep_bCanAttack)
+	bool bCanAttack;
+
+	UFUNCTION()
+	void OnRep_bCanAttack();
+
+	UFUNCTION(Server, Reliable)
+	void SR_Fire();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MC_Fire(FVector HitLoc, FRotator HitRot, AActor* HitActor);
+
+	UFUNCTION()
+	void Fire();
+
 public:
 
 	UFUNCTION()
@@ -174,5 +190,11 @@ public:
 	
 	UFUNCTION()
 	void ADS(float Value);
+
+	UFUNCTION()
+	void StartAttack();
+
+	UFUNCTION()
+	void StopAttack();
 	
 };

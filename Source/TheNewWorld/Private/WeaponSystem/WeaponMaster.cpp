@@ -4,6 +4,8 @@
 #include "WeaponSystem/WeaponMaster.h"
 #include "WeaponSystem/WeaponPickup.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Particles/ParticleSystem.h"
+#include "Animation/AnimSequence.h"
 
 
 // Sets default values for this component's properties
@@ -21,6 +23,8 @@ UWeaponMaster::UWeaponMaster()
 	MagazineMesh = nullptr;
 	PickupClass = AWeaponPickup::StaticClass();
 	SocketToAttach = TEXT("");
+	FireAnim = nullptr;
+	EFX.Init(nullptr, 3);
 	WeaponName = EWeaponName::None;
 	
 }
