@@ -7,6 +7,7 @@
 #include "BaseCharacter.generated.h"
 
 class UCameraComponent;
+class UMaterialInstance;
 class USkeletalMeshComponent;
 class UStaticMeshComponent;
 class UWeaponMaster;
@@ -38,6 +39,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UCameraComponent* Camera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TArray<UMaterialInstance*> Materials;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	USkeletalMeshComponent* Arms;

@@ -13,6 +13,7 @@
 #include "AnimInstances/BodyAnimInst.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "Materials/MaterialInstance.h"
 
 // Sets default values
 ABaseCharacter::ABaseCharacter()
@@ -20,20 +21,22 @@ ABaseCharacter::ABaseCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	Arms = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Arms"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Arms = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Arms"));
 	WeaponFP = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponFP"));
 	WeaponMagFP = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMagFP"));
 	WeaponTP = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponTP"));
 	WeaponMagTP = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMagTP"));
 
-	Arms->SetupAttachment(GetRootComponent());
-	Arms->SetOnlyOwnerSee(true);
-	Arms->SetCastShadow(false);
-
-	Camera->SetupAttachment(Arms, "head");
+	Camera->SetupAttachment(GetRootComponent());
 	Camera->SetFieldOfView(120.f);
 	Camera->bUsePawnControlRotation = true;
+
+	Materials.Init(nullptr, 2);
+
+	Arms->SetupAttachment(Camera);
+	Arms->SetOnlyOwnerSee(true);
+	Arms->SetCastShadow(false);
 
 	WeaponFP->SetupAttachment(Arms);
 	WeaponFP->SetOnlyOwnerSee(true);
@@ -66,7 +69,7 @@ void ABaseCharacter::BeginPlay()
 
 	PCREF = Cast<APlayerController>(GetController());
 	if(PCREF && PCREF->PlayerCameraManager){
-		PCREF->PlayerCameraManager->ViewPitchMin = -70.f;
+		PCREF->PlayerCameraManager->ViewPitchMin = -85.f;
 		PCREF->PlayerCameraManager->ViewPitchMax = 70.f;
 	}
 	
@@ -134,7 +137,7 @@ void ABaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 void ABaseCharacter::MoveFront(float Value)
 {
 	if(Value != 0.f) AddMovementInput(GetActorForwardVector(), Value);
-	if(ArmsAnimInst) FrontMove = ArmsAnimInst->AimAlpha > .5f ? Value * .5f : Value;
+	if(ArmsAnimInst) FrontMove = ArmsAnimInst->AimAlpha > .5f ? Value * .2f : Value;
 	else FrontMove = Value;
 }
 
@@ -242,6 +245,7 @@ void ABaseCharacter::MC_Fire_Implementation(FVector HitLoc, FRotator HitRot, AAc
 	if(HitActor->ActorHasTag(TEXT("Stone"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[0], FTransform(HitRot, HitLoc));
 	else if(HitActor->ActorHasTag(TEXT("Metal"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[1], FTransform(HitRot, HitLoc));
 	else if(HitActor->ActorHasTag(TEXT("Wood"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[2], FTransform(HitRot, HitLoc));
+	else if(HitActor->ActorHasTag(TEXT("Player"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[3], FTransform(HitRot, HitLoc));
 	else UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[0], FTransform(HitRot, HitLoc));
 }
 

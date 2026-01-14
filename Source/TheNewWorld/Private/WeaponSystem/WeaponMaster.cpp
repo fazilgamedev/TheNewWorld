@@ -24,7 +24,7 @@ UWeaponMaster::UWeaponMaster()
 	PickupClass = AWeaponPickup::StaticClass();
 	SocketToAttach = TEXT("");
 	FireAnim = nullptr;
-	EFX.Init(nullptr, 3);
+	EFX.Init(nullptr, 4);
 	WeaponName = EWeaponName::None;
 	
 }

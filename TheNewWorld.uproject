@@ -116,5 +116,10 @@
 			"Name": "DatasmithContent",
 			"Enabled": false
 		}
+	],
+	"TargetPlatforms": [
+		"LinuxNoEditor",
+		"LinuxAArch64NoEditor",
+		"WindowsNoEditor"
 	]
 }
