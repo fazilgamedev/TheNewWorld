@@ -135,8 +135,8 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("Primary", IE_Pressed, this, &ABaseCharacter::SwitchPrimary);
 	PlayerInputComponent->BindAction("Secondary", IE_Pressed, this, &ABaseCharacter::SwitchSecondary);
 	PlayerInputComponent->BindAction("Unarmed", IE_Pressed, this, &ABaseCharacter::SwitchUnarmed);
-	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &ABaseCharacter::SR_StartAttack);
-	PlayerInputComponent->BindAction("Attack", IE_Released, this, &ABaseCharacter::SR_StopAttack);
+	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &ABaseCharacter::StartAttack);
+	PlayerInputComponent->BindAction("Attack", IE_Released, this, &ABaseCharacter::StopAttack);
 
 }
 
@@ -201,7 +201,7 @@ void ABaseCharacter::SR_SetWeaponAtINDEX_Implementation(UWeaponMaster *Weapon, i
 void ABaseCharacter::MC_SwitchWeapons_Implementation(int32 INDEX)
 {
 	if(Loadout.CurrentWeaponINDEX == INDEX) return;
-	SR_StopAttack();
+	StopAttack();
 	Loadout.CurrentWeaponINDEX = INDEX;
 	OnRep_Loadout();
 }
@@ -213,7 +213,7 @@ void ABaseCharacter::SR_SwitchWeapons_Implementation(int32 INDEX)
 
 void ABaseCharacter::Interacting()
 {
-	SR_StopAttack();
+	StopAttack();
 	TArray<AActor*> Actors;
 	GetOverlappingActors(Actors, APickupMaster::StaticClass());
 	if(Actors.Num() > 0 && Actors[0] && Actors[0]->GetClass()->ImplementsInterface(UInteractInterface::StaticClass())){
@@ -245,7 +245,7 @@ void ABaseCharacter::OnRep_bCanAttack()
 void ABaseCharacter::SR_Fire_Implementation()
 {
 	FHitResult FireHitResult;
-	FVector S = WeaponFP->GetSocketLocation(TEXT("Muzzle"));
+	FVector S = Camera->GetComponentLocation();// WeaponFP->GetSocketLocation(TEXT("Muzzle"));
 	FVector E = S + GetBaseAimRotation().Vector() * GetCurrentWeapon()->Range;
 	FCollisionQueryParams P;
 	P.AddIgnoredActor(this);
@@ -357,18 +357,14 @@ void ABaseCharacter::ADS(float Value)
 	Camera->SetFieldOfView(FMath::Lerp(120.f, GetCurrentWeapon()->ADSFOV, ArmsAnimInst->AimAlpha));
 }
 
-void ABaseCharacter::SR_StartAttack_Implementation()
+void ABaseCharacter::StartAttack()
 {
-	if(HasAuthority()){
-		bCanAttack = true;
-		OnRep_bCanAttack();
-	}
+	bCanAttack = true;
+	OnRep_bCanAttack();
 }
 
-void ABaseCharacter::SR_StopAttack_Implementation()
+void ABaseCharacter::StopAttack()
 {
-	if(HasAuthority()){
-		bCanAttack = false;
-		OnRep_bCanAttack();
-	}
+	bCanAttack = false;
+	OnRep_bCanAttack();
 }

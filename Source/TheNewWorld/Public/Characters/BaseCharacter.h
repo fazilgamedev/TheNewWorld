@@ -198,10 +198,10 @@ public:
 	UFUNCTION()
 	void ADS(float Value);
 
-	UFUNCTION(Server, Reliable)
-	void SR_StartAttack();
+	UFUNCTION()
+	void StartAttack();
 
-	UFUNCTION(Server, Reliable)
-	void SR_StopAttack();
+	UFUNCTION()
+	void StopAttack();
 	
 };
