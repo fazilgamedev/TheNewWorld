@@ -19,14 +19,27 @@ public:
 	// Sets default values for this component's properties
 	UHealthComponent();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	float MaxHealth = 100.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentHealth)
 	float CurrentHealth = MaxHealth;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UFUNCTION()
+	void OnRep_CurrentHealth(float OldHealth);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_bIsDead)
 	bool bIsDead;
+
+	UFUNCTION()
+	void OnRep_bIsDead();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_OldDamageInfo)
+	FDamageInfo OldDamageInfo;
+
+	UFUNCTION()
+	void OnRep_OldDamageInfo();
+
 
 	UPROPERTY(BlueprintAssignable)
 	FOnDeath OnDeath;
@@ -41,6 +54,8 @@ protected:
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(BlueprintCallable)
 	float Heal(float Amount);

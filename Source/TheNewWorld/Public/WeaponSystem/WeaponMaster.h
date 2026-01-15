@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "WeaponSystem/WeaponEnums.h"
+#include "HealthSystem/DamageInfo.h"
 #include "WeaponMaster.generated.h"
 
 class USkeletalMesh;
@@ -35,7 +36,7 @@ public:
 	FName SocketToAttach;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Damage;
+	FDamageInfo DamageInfo;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Range;

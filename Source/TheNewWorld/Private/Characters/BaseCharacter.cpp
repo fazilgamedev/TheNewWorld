@@ -66,6 +66,7 @@ ABaseCharacter::ABaseCharacter()
 
 	HealthComponent->OnDeath.AddDynamic(this, &ABaseCharacter::Death);
 	HealthComponent->OnDamageResponse.AddDynamic(this, &ABaseCharacter::DamageResponse);
+	HealthComponent->MaxHealth = 100.f;
 
 	
 }
@@ -266,7 +267,7 @@ void ABaseCharacter::OnRep_bCanAttack()
 void ABaseCharacter::SR_Fire_Implementation()
 {
 	FHitResult FireHitResult;
-	FVector S = Camera->GetComponentLocation();// WeaponFP->GetSocketLocation(TEXT("Muzzle"));
+	FVector S = Camera->GetComponentLocation();
 	FVector E = S + GetBaseAimRotation().Vector() * GetCurrentWeapon()->Range;
 	FCollisionQueryParams P;
 	P.AddIgnoredActor(this);
@@ -275,6 +276,10 @@ void ABaseCharacter::SR_Fire_Implementation()
 	AActor* HitActor = nullptr;
 	if(GetWorld()->LineTraceSingleByChannel(FireHitResult, S, E, ECollisionChannel::ECC_Visibility, P)){
 		HitActor = FireHitResult.GetActor();
+		if(HitActor->GetClass()->ImplementsInterface(UHealthInterface::StaticClass())){
+			IHealthInterface::Execute_TakeDamage(HitActor, GetCurrentWeapon()->DamageInfo);
+			UE_LOG(LogTemp, Warning, TEXT("CurrentHealth: %f of %s"), IHealthInterface::Execute_GetCurrentHealth(HitActor), *HitActor->GetName());
+		}
 	}
 	MC_Fire(FireHitResult.Location, FireHitResult.ImpactNormal.Rotation(), HitActor);	
 }

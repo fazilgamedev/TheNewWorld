@@ -23,6 +23,9 @@ UWeaponMaster::UWeaponMaster()
 	MagazineMesh = nullptr;
 	PickupClass = AWeaponPickup::StaticClass();
 	SocketToAttach = TEXT("");
+	DamageInfo.Amount = 0.f;
+	DamageInfo.DamageResponse = EDamageResponse::None;
+	DamageInfo.DamageType = EDamageType::None;
 	FireAnim = nullptr;
 	EFX.Init(nullptr, 4);
 	WeaponName = EWeaponName::None;
