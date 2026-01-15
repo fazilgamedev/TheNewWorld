@@ -22,6 +22,8 @@ APickupMaster::APickupMaster()
 	PickupRadius->SetupAttachment(PickupModel);
 	PickupRadius->SetSphereRadius(100.f);
 
+	Tags.Add(TEXT("Metal"));
+
 }
 
 // Called when the game starts or when spawned

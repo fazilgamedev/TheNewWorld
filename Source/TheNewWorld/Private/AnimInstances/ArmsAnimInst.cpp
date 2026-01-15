@@ -126,6 +126,7 @@ void UArmsAnimInst::Firing()
 	RocoilRotation += FRotator(FMath::RandRange(CurrentWeapon->HorizontalRecoil * -1.f, CurrentWeapon->HorizontalRecoil), FMath::RandRange(CurrentWeapon->SideRecoil * -1.f, CurrentWeapon->SideRecoil), FMath::RandRange(CurrentWeapon->VerticalRecoil * -1.f - 1.f, CurrentWeapon->VerticalRecoil * -1.f));
 	RecoilResetTransform.SetRotation(RocoilRotation.Quaternion());
 	RecoilResetTransform.SetLocation(RecoilLocation);
+	UE_LOG(LogTemp, Warning, TEXT("AnimInstFiring"));
 }
 
 

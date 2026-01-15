@@ -41,9 +41,6 @@ public:
 	UCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TArray<UMaterialInstance*> Materials;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	USkeletalMeshComponent* Arms;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
@@ -93,7 +90,7 @@ private:
 	APlayerController* PCREF;
 
 	UPROPERTY()
-	FTimerHandle FireHandle;
+	FTimerHandle AttackHandle;
 
 	UPROPERTY()
 	UArmsAnimInst* ArmsAnimInst;
@@ -120,6 +117,12 @@ private:
 
 	UFUNCTION()
 	void LookRight(float Value);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_Materials , meta = (AllowPrivateAccess = "true"));
+	TArray<UMaterialInstance*> Materials;
+
+	UFUNCTION()
+	void OnRep_Materials();
 
 	UPROPERTY(ReplicatedUsing = OnRep_Loadout)
 	FLoadout Loadout;
@@ -195,10 +198,10 @@ public:
 	UFUNCTION()
 	void ADS(float Value);
 
-	UFUNCTION()
-	void StartAttack();
+	UFUNCTION(Server, Reliable)
+	void SR_StartAttack();
 
-	UFUNCTION()
-	void StopAttack();
+	UFUNCTION(Server, Reliable)
+	void SR_StopAttack();
 	
 };

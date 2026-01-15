@@ -14,6 +14,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 #include "Materials/MaterialInstance.h"
+#include "Camera/CSB_Fire.h"
 
 // Sets default values
 ABaseCharacter::ABaseCharacter()
@@ -32,7 +33,7 @@ ABaseCharacter::ABaseCharacter()
 	Camera->SetFieldOfView(120.f);
 	Camera->bUsePawnControlRotation = true;
 
-	Materials.Init(nullptr, 2);
+	Materials.Init(nullptr, 4);
 
 	Arms->SetupAttachment(Camera);
 	Arms->SetOnlyOwnerSee(true);
@@ -72,7 +73,19 @@ void ABaseCharacter::BeginPlay()
 		PCREF->PlayerCameraManager->ViewPitchMin = -85.f;
 		PCREF->PlayerCameraManager->ViewPitchMax = 70.f;
 	}
-	
+
+	if(IsLocallyControlled()){
+		if(Materials[0] && Materials[1]){
+			Arms->SetMaterial(0, Materials[0]);
+			Arms->SetMaterial(1, Materials[1]);
+		}
+	}else{
+		if(Materials[2] && Materials[3]){
+			Arms->SetMaterial(0, Materials[2]);
+			Arms->SetMaterial(1, Materials[3]);
+		}
+	}
+
 	ArmsAnimInst = Cast<UArmsAnimInst>(Arms->GetAnimInstance());
 
 	BodyAnimInst = Cast<UBodyAnimInst>(GetMesh()->GetAnimInstance());
@@ -122,8 +135,8 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("Primary", IE_Pressed, this, &ABaseCharacter::SwitchPrimary);
 	PlayerInputComponent->BindAction("Secondary", IE_Pressed, this, &ABaseCharacter::SwitchSecondary);
 	PlayerInputComponent->BindAction("Unarmed", IE_Pressed, this, &ABaseCharacter::SwitchUnarmed);
-	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &ABaseCharacter::StartAttack);
-	PlayerInputComponent->BindAction("Attack", IE_Released, this, &ABaseCharacter::StopAttack);
+	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &ABaseCharacter::SR_StartAttack);
+	PlayerInputComponent->BindAction("Attack", IE_Released, this, &ABaseCharacter::SR_StopAttack);
 
 }
 
@@ -131,7 +144,9 @@ void ABaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(ABaseCharacter, Materials);
 	DOREPLIFETIME(ABaseCharacter, Loadout);
+	DOREPLIFETIME(ABaseCharacter, bCanAttack);
 }
 
 void ABaseCharacter::MoveFront(float Value)
@@ -155,6 +170,11 @@ void ABaseCharacter::LookUp(float Value)
 void ABaseCharacter::LookRight(float Value)
 {
 	AddControllerYawInput(Value * H_Sensitivity);
+}
+
+void ABaseCharacter::OnRep_Materials()
+{
+
 }
 
 void ABaseCharacter::OnRep_Loadout()
@@ -181,6 +201,7 @@ void ABaseCharacter::SR_SetWeaponAtINDEX_Implementation(UWeaponMaster *Weapon, i
 void ABaseCharacter::MC_SwitchWeapons_Implementation(int32 INDEX)
 {
 	if(Loadout.CurrentWeaponINDEX == INDEX) return;
+	SR_StopAttack();
 	Loadout.CurrentWeaponINDEX = INDEX;
 	OnRep_Loadout();
 }
@@ -192,6 +213,7 @@ void ABaseCharacter::SR_SwitchWeapons_Implementation(int32 INDEX)
 
 void ABaseCharacter::Interacting()
 {
+	SR_StopAttack();
 	TArray<AActor*> Actors;
 	GetOverlappingActors(Actors, APickupMaster::StaticClass());
 	if(Actors.Num() > 0 && Actors[0] && Actors[0]->GetClass()->ImplementsInterface(UInteractInterface::StaticClass())){
@@ -224,13 +246,12 @@ void ABaseCharacter::SR_Fire_Implementation()
 {
 	FHitResult FireHitResult;
 	FVector S = WeaponFP->GetSocketLocation(TEXT("Muzzle"));
-	FVector E = S + GetControlRotation().Vector() * GetCurrentWeapon()->Range;
+	FVector E = S + GetBaseAimRotation().Vector() * GetCurrentWeapon()->Range;
 	FCollisionQueryParams P;
 	P.AddIgnoredActor(this);
 	P.bTraceComplex = true;
-	//DrawDebugLine(GetWorld(), S, E, FColor::Red, false, 1.f, 1, 2.f);
+	DrawDebugLine(GetWorld(), S, E, FColor::Red, false, 1.f, 1, 2.f);
 	AActor* HitActor = nullptr;
-	ArmsAnimInst->Firing();
 	if(GetWorld()->LineTraceSingleByChannel(FireHitResult, S, E, ECollisionChannel::ECC_Visibility, P)){
 		HitActor = FireHitResult.GetActor();
 	}
@@ -239,13 +260,16 @@ void ABaseCharacter::SR_Fire_Implementation()
 
 void ABaseCharacter::MC_Fire_Implementation(FVector HitLoc, FRotator HitRot, AActor *HitActor)
 {
-	if(IsLocallyControlled()) WeaponFP->PlayAnimation(GetCurrentWeapon()->FireAnim, false);
-	else WeaponTP->PlayAnimation(GetCurrentWeapon()->FireAnim, false);
+	if(IsLocallyControlled()){ 
+		WeaponFP->PlayAnimation(GetCurrentWeapon()->FireAnim, false);
+		ArmsAnimInst->Firing();
+		if(PCREF) PCREF->ClientStartCameraShake(UCSB_Fire::StaticClass(), 1.3f);
+	}else WeaponTP->PlayAnimation(GetCurrentWeapon()->FireAnim, false);
 	if(!HitActor) return;
 	if(HitActor->ActorHasTag(TEXT("Stone"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[0], FTransform(HitRot, HitLoc));
 	else if(HitActor->ActorHasTag(TEXT("Metal"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[1], FTransform(HitRot, HitLoc));
 	else if(HitActor->ActorHasTag(TEXT("Wood"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[2], FTransform(HitRot, HitLoc));
-	else if(HitActor->ActorHasTag(TEXT("Player"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[3], FTransform(HitRot, HitLoc));
+	else if(HitActor->ActorHasTag(TEXT("Player"))) { if(IsLocallyControlled()) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[3], FTransform(HitRot, HitLoc)); }
 	else UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[0], FTransform(HitRot, HitLoc));
 }
 
@@ -253,10 +277,10 @@ void ABaseCharacter::Fire()
 {
 	if(bCanAttack && GetCurrentWeapon()){
 		SR_Fire();
-		GetWorldTimerManager().SetTimer(FireHandle, this, &ABaseCharacter::SR_Fire, GetCurrentWeapon()->FireRate, true);
+		GetWorldTimerManager().SetTimer(AttackHandle, this, &ABaseCharacter::SR_Fire, GetCurrentWeapon()->FireRate, true);
 	}else{
-		GetWorldTimerManager().ClearTimer(FireHandle);
-		FireHandle.Invalidate();
+		GetWorldTimerManager().ClearTimer(AttackHandle);
+		AttackHandle.Invalidate();
 	}
 }
 
@@ -333,14 +357,18 @@ void ABaseCharacter::ADS(float Value)
 	Camera->SetFieldOfView(FMath::Lerp(120.f, GetCurrentWeapon()->ADSFOV, ArmsAnimInst->AimAlpha));
 }
 
-void ABaseCharacter::StartAttack()
+void ABaseCharacter::SR_StartAttack_Implementation()
 {
-	bCanAttack = true;
-	OnRep_bCanAttack();
+	if(HasAuthority()){
+		bCanAttack = true;
+		OnRep_bCanAttack();
+	}
 }
 
-void ABaseCharacter::StopAttack()
+void ABaseCharacter::SR_StopAttack_Implementation()
 {
-	bCanAttack = false;
-	OnRep_bCanAttack();
+	if(HasAuthority()){
+		bCanAttack = false;
+		OnRep_bCanAttack();
+	}
 }
