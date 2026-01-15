@@ -15,6 +15,7 @@
 #include "DrawDebugHelpers.h"
 #include "Materials/MaterialInstance.h"
 #include "Camera/CSB_Fire.h"
+#include "HealthSystem/HealthComponent.h"
 
 // Sets default values
 ABaseCharacter::ABaseCharacter()
@@ -28,6 +29,8 @@ ABaseCharacter::ABaseCharacter()
 	WeaponMagFP = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMagFP"));
 	WeaponTP = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponTP"));
 	WeaponMagTP = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMagTP"));
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+
 
 	Camera->SetupAttachment(GetRootComponent());
 	Camera->SetFieldOfView(120.f);
@@ -60,6 +63,10 @@ ABaseCharacter::ABaseCharacter()
 
 	Loadout.Weapons.Init(nullptr, 2);
 	Loadout.CurrentWeaponINDEX = 0;
+
+	HealthComponent->OnDeath.AddDynamic(this, &ABaseCharacter::Death);
+	HealthComponent->OnDamageResponse.AddDynamic(this, &ABaseCharacter::DamageResponse);
+
 	
 }
 
@@ -144,9 +151,28 @@ void ABaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ABaseCharacter, Materials);
 	DOREPLIFETIME(ABaseCharacter, Loadout);
 	DOREPLIFETIME(ABaseCharacter, bCanAttack);
+}
+
+float ABaseCharacter::GetCurrentHealth_Implementation()
+{
+    return HealthComponent->CurrentHealth;
+}
+
+float ABaseCharacter::GetMaxHealth_Implementation()
+{
+    return HealthComponent->MaxHealth;
+}
+
+float ABaseCharacter::Heal_Implementation(float Amount)
+{
+    return HealthComponent->Heal(Amount);
+}
+
+bool ABaseCharacter::TakeDamage_Implementation(FDamageInfo DamageInfo)
+{
+    return HealthComponent->TakeDamage(DamageInfo);
 }
 
 void ABaseCharacter::MoveFront(float Value)
@@ -284,6 +310,16 @@ void ABaseCharacter::Recoil()
 {
 	AddControllerPitchInput(-GetCurrentWeapon()->Recoil_Vertical);
 	AddControllerYawInput(FMath::RandRange(-GetCurrentWeapon()->Recoil_Horizontal_Left, GetCurrentWeapon()->Recoil_Horizontal_Right));
+}
+
+void ABaseCharacter::Death()
+{
+	UE_LOG(LogTemp, Warning, TEXT("DEAD"));
+}
+
+void ABaseCharacter::DamageResponse(EDamageResponse DamageResponse)
+{
+	UE_LOG(LogTemp, Warning, TEXT("DamageResponse"));
 }
 
 UWeaponMaster *ABaseCharacter::GetWeaponAtINDEX(int32 INDEX)

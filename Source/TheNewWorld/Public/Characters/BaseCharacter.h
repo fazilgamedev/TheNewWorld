@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "HealthSystem/Interfaces/HealthInterface.h"
 #include "BaseCharacter.generated.h"
 
 class UCameraComponent;
@@ -14,6 +15,7 @@ class UWeaponMaster;
 class UArmsAnimInst;
 class UBodyAnimInst;
 class APlayerContoller;
+class UHealthComponent;
 
 USTRUCT(BlueprintType)
 struct FLoadout
@@ -29,7 +31,7 @@ struct FLoadout
 };
 
 UCLASS()
-class THENEWWORLD_API ABaseCharacter : public ACharacter
+class THENEWWORLD_API ABaseCharacter : public ACharacter, public IHealthInterface
 {
 	GENERATED_BODY()
 
@@ -70,6 +72,9 @@ public:
 	UPROPERTY()
 	FVector WalkVector;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UHealthComponent* HealthComponent;
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -83,6 +88,14 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual float GetCurrentHealth_Implementation() override;
+
+	virtual float GetMaxHealth_Implementation() override;
+
+	virtual float Heal_Implementation(float Amount) override;
+
+	virtual bool TakeDamage_Implementation(FDamageInfo DamageInfo) override;
 
 private:
 
@@ -118,7 +131,7 @@ private:
 	UFUNCTION()
 	void LookRight(float Value);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, meta = (AllowPrivateAccess = "true"));
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"));
 	TArray<UMaterialInstance*> Materials;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Loadout)
@@ -172,6 +185,13 @@ private:
 	UFUNCTION()
 	void Recoil();
 
+	UFUNCTION()
+	void Death();
+
+	UFUNCTION()
+	void DamageResponse(EDamageResponse DamageResponse);
+
+
 public:
 
 	UFUNCTION()
@@ -203,5 +223,7 @@ public:
 
 	UFUNCTION()
 	void StopAttack();
+
+
 	
 };

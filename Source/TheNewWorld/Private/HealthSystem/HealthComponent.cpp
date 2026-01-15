@@ -33,3 +33,20 @@ void UHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	// ...
 }
 
+float UHealthComponent::Heal(float Amount)
+{
+	if (bIsDead) return 0.f;
+	CurrentHealth = FMath::Clamp(CurrentHealth + Amount, 0.f, MaxHealth);
+	return CurrentHealth;
+}
+
+bool UHealthComponent::TakeDamage(FDamageInfo DamageInfo)
+{
+	if(bIsDead) return false;
+	CurrentHealth = CurrentHealth - DamageInfo.Amount;
+	if(CurrentHealth <= 0.f){
+		bIsDead = true;
+		OnDeath.Broadcast();
+	}
+	return true;
+}
