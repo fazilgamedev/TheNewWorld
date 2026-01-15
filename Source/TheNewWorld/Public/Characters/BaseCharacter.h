@@ -118,11 +118,8 @@ private:
 	UFUNCTION()
 	void LookRight(float Value);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, ReplicatedUsing = OnRep_Materials , meta = (AllowPrivateAccess = "true"));
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, meta = (AllowPrivateAccess = "true"));
 	TArray<UMaterialInstance*> Materials;
-
-	UFUNCTION()
-	void OnRep_Materials();
 
 	UPROPERTY(ReplicatedUsing = OnRep_Loadout)
 	FLoadout Loadout;
@@ -171,6 +168,9 @@ private:
 
 	UFUNCTION()
 	void Fire();
+
+	UFUNCTION()
+	void Recoil();
 
 public:
 

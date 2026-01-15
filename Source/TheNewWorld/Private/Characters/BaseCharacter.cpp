@@ -81,8 +81,8 @@ void ABaseCharacter::BeginPlay()
 		}
 	}else{
 		if(Materials[2] && Materials[3]){
-			Arms->SetMaterial(0, Materials[2]);
-			Arms->SetMaterial(1, Materials[3]);
+			GetMesh()->SetMaterial(0, Materials[2]);
+			GetMesh()->SetMaterial(1, Materials[3]);
 		}
 	}
 
@@ -172,11 +172,6 @@ void ABaseCharacter::LookRight(float Value)
 	AddControllerYawInput(Value * H_Sensitivity);
 }
 
-void ABaseCharacter::OnRep_Materials()
-{
-
-}
-
 void ABaseCharacter::OnRep_Loadout()
 {
 	SetCurrentWeaponMesh();
@@ -250,7 +245,7 @@ void ABaseCharacter::SR_Fire_Implementation()
 	FCollisionQueryParams P;
 	P.AddIgnoredActor(this);
 	P.bTraceComplex = true;
-	DrawDebugLine(GetWorld(), S, E, FColor::Red, false, 1.f, 1, 2.f);
+	//DrawDebugLine(GetWorld(), S, E, FColor::Red, false, 1.f, 1, 2.f);
 	AActor* HitActor = nullptr;
 	if(GetWorld()->LineTraceSingleByChannel(FireHitResult, S, E, ECollisionChannel::ECC_Visibility, P)){
 		HitActor = FireHitResult.GetActor();
@@ -263,6 +258,7 @@ void ABaseCharacter::MC_Fire_Implementation(FVector HitLoc, FRotator HitRot, AAc
 	if(IsLocallyControlled()){ 
 		WeaponFP->PlayAnimation(GetCurrentWeapon()->FireAnim, false);
 		ArmsAnimInst->Firing();
+		Recoil();
 		if(PCREF) PCREF->ClientStartCameraShake(UCSB_Fire::StaticClass(), 1.3f);
 	}else WeaponTP->PlayAnimation(GetCurrentWeapon()->FireAnim, false);
 	if(!HitActor) return;
@@ -282,6 +278,12 @@ void ABaseCharacter::Fire()
 		GetWorldTimerManager().ClearTimer(AttackHandle);
 		AttackHandle.Invalidate();
 	}
+}
+
+void ABaseCharacter::Recoil()
+{
+	AddControllerPitchInput(-GetCurrentWeapon()->Recoil_Vertical);
+	AddControllerYawInput(FMath::RandRange(-GetCurrentWeapon()->Recoil_Horizontal_Left, GetCurrentWeapon()->Recoil_Horizontal_Right));
 }
 
 UWeaponMaster *ABaseCharacter::GetWeaponAtINDEX(int32 INDEX)
