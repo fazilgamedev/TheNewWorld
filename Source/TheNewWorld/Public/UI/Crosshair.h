@@ -36,5 +36,14 @@ public:
 
 	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnim))
 	UWidgetAnimation* OnAim;
+
+	UFUNCTION()
+	void PlayOnCrosshairFire(bool bCanAttack);
+
+	UFUNCTION()
+	void PlayOnHitMarker();
+
+	UFUNCTION()
+	void PlayOnAim(bool bCanAim);
 	
 };

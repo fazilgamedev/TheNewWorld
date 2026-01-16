@@ -240,10 +240,10 @@ void ABaseCharacter::SR_SwitchWeapons_Implementation(int32 INDEX)
 
 void ABaseCharacter::Interacting()
 {
-	StopAttack();
 	TArray<AActor*> Actors;
 	GetOverlappingActors(Actors, APickupMaster::StaticClass());
 	if(Actors.Num() > 0 && Actors[0] && Actors[0]->GetClass()->ImplementsInterface(UInteractInterface::StaticClass())){
+		StopAttack();
 		if(HasAuthority()) 	IInteractInterface::Execute_Interact(Actors[0], this);
 		else SR_Interact(Actors[0], this);
 	}
@@ -269,7 +269,19 @@ void ABaseCharacter::OnRep_bCanAttack()
 	Fire();
 }
 
-void ABaseCharacter::SR_Fire_Implementation()
+void ABaseCharacter::SR_StartAttack_Implementation()
+{
+	bCanAttack = true;
+	OnRep_bCanAttack();
+}
+
+void ABaseCharacter::SR_StopAttack_Implementation()
+{
+	bCanAttack = false;
+	OnRep_bCanAttack();
+}
+
+void ABaseCharacter::Trace()
 {
 	FHitResult FireHitResult;
 	FVector S = Camera->GetComponentLocation();
@@ -281,9 +293,10 @@ void ABaseCharacter::SR_Fire_Implementation()
 	AActor* HitActor = nullptr;
 	if(GetWorld()->LineTraceSingleByChannel(FireHitResult, S, E, ECollisionChannel::ECC_Visibility, P)){
 		HitActor = FireHitResult.GetActor();
+		if(!HitActor) return;
 		if(HitActor->GetClass()->ImplementsInterface(UHealthInterface::StaticClass())){
 			IHealthInterface::Execute_TakeDamage(HitActor, GetCurrentWeapon()->DamageInfo);
-			UE_LOG(LogTemp, Warning, TEXT("CurrentHealth: %f of %s"), IHealthInterface::Execute_GetCurrentHealth(HitActor), *HitActor->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("%f"), IHealthInterface::Execute_GetCurrentHealth(HitActor));
 		}
 	}
 	MC_Fire(FireHitResult.Location, FireHitResult.ImpactNormal.Rotation(), HitActor);	
@@ -291,11 +304,13 @@ void ABaseCharacter::SR_Fire_Implementation()
 
 void ABaseCharacter::MC_Fire_Implementation(FVector HitLoc, FRotator HitRot, AActor *HitActor)
 {
+	if(!GetCurrentWeapon()) return;
 	if(IsLocallyControlled()){ 
 		WeaponFP->PlayAnimation(GetCurrentWeapon()->FireAnim, false);
 		ArmsAnimInst->Firing();
 		Recoil();
 		if(PCREF) PCREF->ClientStartCameraShake(UCSB_Fire::StaticClass(), 1.3f);
+		if(HitActor && HUDREF && HUDREF->CrosshairWidget && HitActor->ActorHasTag(TEXT("Player"))) HUDREF->CrosshairWidget->PlayOnHitMarker();
 	}else WeaponTP->PlayAnimation(GetCurrentWeapon()->FireAnim, false);
 	if(!HitActor) return;
 	if(HitActor->ActorHasTag(TEXT("Stone"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[0], FTransform(HitRot, HitLoc));
@@ -305,23 +320,20 @@ void ABaseCharacter::MC_Fire_Implementation(FVector HitLoc, FRotator HitRot, AAc
 	else UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[0], FTransform(HitRot, HitLoc));
 }
 
-void ABaseCharacter::MC_CrosshairFire_Implementation(bool Forward)
-{
-	if(GetCurrentWeapon()) if(HUDREF) if(HUDREF->CrosshairWidget) { if(Forward) HUDREF->CrosshairWidget->PlayAnimation(HUDREF->CrosshairWidget->CrosshairFire, 0.f, 1, EUMGSequencePlayMode::Forward, 2.f);
-		else HUDREF->CrosshairWidget->PlayAnimation(HUDREF->CrosshairWidget->CrosshairFire, 0.f, 1, EUMGSequencePlayMode::Reverse, 2.f);
-	}
-}
-
 void ABaseCharacter::Fire()
 {
 	if(bCanAttack && GetCurrentWeapon()){
-		SR_Fire();
-		MC_CrosshairFire(bCanAttack);
-		GetWorldTimerManager().SetTimer(AttackHandle, this, &ABaseCharacter::SR_Fire, GetCurrentWeapon()->FireRate, true);
+		if(HasAuthority()){
+			Trace();
+			GetWorldTimerManager().SetTimer(AttackHandle, this, &ABaseCharacter::Trace, GetCurrentWeapon()->FireRate, true);
+		}
+		if(IsLocallyControlled() && HUDREF && HUDREF->CrosshairWidget) HUDREF->CrosshairWidget->PlayOnCrosshairFire(bCanAttack);
 	}else{
-		MC_CrosshairFire(bCanAttack);
-		GetWorldTimerManager().ClearTimer(AttackHandle);
-		AttackHandle.Invalidate();
+		if(HasAuthority()){
+			GetWorldTimerManager().ClearTimer(AttackHandle);
+			AttackHandle.Invalidate();
+		}
+		if(IsLocallyControlled() && HUDREF && HUDREF->CrosshairWidget) HUDREF->CrosshairWidget->PlayOnCrosshairFire(bCanAttack);
 	}
 }
 
@@ -390,7 +402,7 @@ void ABaseCharacter::SetCurrentWeaponMesh()
 void ABaseCharacter::SwitchWeapons(int32 INDEX)
 {
 	if(HasAuthority()) MC_SwitchWeapons(INDEX);
-	else SR_SwitchWeapons(INDEX);
+	else if(PCREF && IsLocallyControlled()) SR_SwitchWeapons(INDEX);
 }
 
 void ABaseCharacter::SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn)
@@ -410,18 +422,20 @@ void ABaseCharacter::SpawnWeapon(TSubclassOf<UWeaponMaster> WeaponToSpawn)
 void ABaseCharacter::ADS(float Value)
 {
 	if(!GetCurrentWeapon()) return;
+	if(Value > .5f && HUDREF && HUDREF->CrosshairWidget) HUDREF->CrosshairWidget->PlayOnAim(true);
+	else HUDREF->CrosshairWidget->PlayOnAim(false);
 	if(ArmsAnimInst) ArmsAnimInst->AimAlpha = FMath::FInterpTo(ArmsAnimInst->AimAlpha, Value, GetWorld()->GetDeltaSeconds(), 10.f);
 	Camera->SetFieldOfView(FMath::Lerp(120.f, GetCurrentWeapon()->ADSFOV, ArmsAnimInst->AimAlpha));
 }
 
 void ABaseCharacter::StartAttack()
 {
-	bCanAttack = true;
-	OnRep_bCanAttack();
+	if(!IsLocallyControlled()) return;
+	SR_StartAttack();
 }
 
 void ABaseCharacter::StopAttack()
 {
-	bCanAttack = false;
-	OnRep_bCanAttack();
+	if(!IsLocallyControlled()) return;
+	SR_StopAttack();
 }

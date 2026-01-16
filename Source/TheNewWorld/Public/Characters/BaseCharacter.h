@@ -181,13 +181,16 @@ private:
 	void OnRep_bCanAttack();
 
 	UFUNCTION(Server, Reliable)
-	void SR_Fire();
+	void SR_StartAttack();
+
+	UFUNCTION(Server, Reliable)
+	void SR_StopAttack();
+	
+	UFUNCTION()//Server, Reliable)
+	void Trace();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MC_Fire(FVector HitLoc, FRotator HitRot, AActor* HitActor);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void MC_CrosshairFire(bool Forward);
 
 	UFUNCTION()
 	void Fire();
