@@ -16,6 +16,7 @@ class UArmsAnimInst;
 class UBodyAnimInst;
 class APlayerContoller;
 class UHealthComponent;
+class APlayerHUD;
 
 USTRUCT(BlueprintType)
 struct FLoadout
@@ -75,6 +76,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UHealthComponent* HealthComponent;
 
+	UPROPERTY()
+	FVector NavPoint;
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -101,6 +105,9 @@ private:
 
 	UPROPERTY()
 	APlayerController* PCREF;
+
+	UPROPERTY()
+	APlayerHUD* HUDREF;
 
 	UPROPERTY()
 	FTimerHandle AttackHandle;
@@ -178,6 +185,9 @@ private:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MC_Fire(FVector HitLoc, FRotator HitRot, AActor* HitActor);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MC_CrosshairFire(bool Forward);
 
 	UFUNCTION()
 	void Fire();

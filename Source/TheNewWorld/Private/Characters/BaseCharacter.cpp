@@ -16,6 +16,8 @@
 #include "Materials/MaterialInstance.h"
 #include "Camera/CSB_Fire.h"
 #include "HealthSystem/HealthComponent.h"
+#include "UI/PlayerHUD.h"
+#include "UI/Crosshair.h"
 
 // Sets default values
 ABaseCharacter::ABaseCharacter()
@@ -77,9 +79,12 @@ void ABaseCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	PCREF = Cast<APlayerController>(GetController());
-	if(PCREF && PCREF->PlayerCameraManager){
-		PCREF->PlayerCameraManager->ViewPitchMin = -85.f;
-		PCREF->PlayerCameraManager->ViewPitchMax = 70.f;
+	if(PCREF){
+		if(PCREF->PlayerCameraManager){
+			PCREF->PlayerCameraManager->ViewPitchMin = -85.f;
+			PCREF->PlayerCameraManager->ViewPitchMax = 70.f;
+		}
+		HUDREF = Cast<APlayerHUD>(PCREF->GetHUD());
 	}
 
 	if(IsLocallyControlled()){
@@ -300,12 +305,21 @@ void ABaseCharacter::MC_Fire_Implementation(FVector HitLoc, FRotator HitRot, AAc
 	else UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[0], FTransform(HitRot, HitLoc));
 }
 
+void ABaseCharacter::MC_CrosshairFire_Implementation(bool Forward)
+{
+	if(GetCurrentWeapon()) if(HUDREF) if(HUDREF->CrosshairWidget) { if(Forward) HUDREF->CrosshairWidget->PlayAnimation(HUDREF->CrosshairWidget->CrosshairFire, 0.f, 1, EUMGSequencePlayMode::Forward, 2.f);
+		else HUDREF->CrosshairWidget->PlayAnimation(HUDREF->CrosshairWidget->CrosshairFire, 0.f, 1, EUMGSequencePlayMode::Reverse, 2.f);
+	}
+}
+
 void ABaseCharacter::Fire()
 {
 	if(bCanAttack && GetCurrentWeapon()){
 		SR_Fire();
+		MC_CrosshairFire(bCanAttack);
 		GetWorldTimerManager().SetTimer(AttackHandle, this, &ABaseCharacter::SR_Fire, GetCurrentWeapon()->FireRate, true);
 	}else{
+		MC_CrosshairFire(bCanAttack);
 		GetWorldTimerManager().ClearTimer(AttackHandle);
 		AttackHandle.Invalidate();
 	}
