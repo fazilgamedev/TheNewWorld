@@ -74,7 +74,7 @@ ABaseCharacter::ABaseCharacter()
 }
 
 // Called when the game starts or when spawned
-void ABaseCharacter::BeginPlay()
+void ABaseCharacter::BeginPlay() 
 {
 	Super::BeginPlay();
 
@@ -296,7 +296,6 @@ void ABaseCharacter::Trace()
 		if(!HitActor) return;
 		if(HitActor->GetClass()->ImplementsInterface(UHealthInterface::StaticClass())){
 			IHealthInterface::Execute_TakeDamage(HitActor, GetCurrentWeapon()->DamageInfo);
-			UE_LOG(LogTemp, Warning, TEXT("%f"), IHealthInterface::Execute_GetCurrentHealth(HitActor));
 		}
 	}
 	MC_Fire(FireHitResult.Location, FireHitResult.ImpactNormal.Rotation(), HitActor);	
@@ -310,7 +309,10 @@ void ABaseCharacter::MC_Fire_Implementation(FVector HitLoc, FRotator HitRot, AAc
 		ArmsAnimInst->Firing();
 		Recoil();
 		if(PCREF) PCREF->ClientStartCameraShake(UCSB_Fire::StaticClass(), 1.3f);
-		if(HitActor && HUDREF && HUDREF->CrosshairWidget && HitActor->ActorHasTag(TEXT("Player"))) HUDREF->CrosshairWidget->PlayOnHitMarker();
+		if(HitActor && HUDREF && HUDREF->CrosshairWidget && HitActor->ActorHasTag(TEXT("Player"))) {
+			HUDREF->CrosshairWidget->PlayOnHitMarker();
+			// UGameplayStatics::PlaySound2D(GetWorld(), HitSound);
+		}
 	}else WeaponTP->PlayAnimation(GetCurrentWeapon()->FireAnim, false);
 	if(!HitActor) return;
 	if(HitActor->ActorHasTag(TEXT("Stone"))) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GetCurrentWeapon()->EFX[0], FTransform(HitRot, HitLoc));

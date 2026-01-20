@@ -79,6 +79,11 @@ public:
 	UPROPERTY()
 	FVector NavPoint;
 
+	UPROPERTY()
+    int32 WallAlpha = 0;
+
+
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -123,6 +128,9 @@ private:
 
 	UPROPERTY()
 	FVector CurrentAmp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"));
+	USoundBase* HitSound;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -186,7 +194,7 @@ private:
 	UFUNCTION(Server, Reliable)
 	void SR_StopAttack();
 	
-	UFUNCTION()//Server, Reliable)
+	UFUNCTION()
 	void Trace();
 
 	UFUNCTION(NetMulticast, Reliable)

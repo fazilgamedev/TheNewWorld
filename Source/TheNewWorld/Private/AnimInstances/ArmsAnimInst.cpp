@@ -27,9 +27,9 @@ void UArmsAnimInst::NativeUpdateAnimation(float DeltaTime)
 
 	Direction = CalculateDirection(CharacterREF->GetVelocity(), CharacterREF->GetActorRotation());
 
-	float P = CharacterREF->GetControlRotation().Pitch;
+	// float P = CharacterREF->GetControlRotation().Pitch;
 
-	Pitch = P > 180.f ? 360 - P : -P;
+	// Pitch = P > 180.f ? 360 - P : -P;
 
 	CurrentWeapon = CharacterREF->GetCurrentWeapon();
 

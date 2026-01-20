@@ -7,6 +7,7 @@
 #include "BodyAnimInst.generated.h"
 
 class ABaseCharacter;
+class UWeaponMaster;
 
 /**
  * 
@@ -26,6 +27,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float Direction;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float Pitch;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float WallAlpha;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FTransform LHIK;
+
 protected:
 
 	virtual void NativeInitializeAnimation() override;
@@ -36,6 +46,9 @@ private:
 
 	UPROPERTY()
 	ABaseCharacter* CharacterREF;
+
+	UPROPERTY()
+	UWeaponMaster* CurrentWeapon;
 
 //////////////////////////////////////////////////////////////////
 
